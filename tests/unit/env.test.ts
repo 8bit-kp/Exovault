@@ -60,7 +60,12 @@ describe("parseEnv", () => {
 
   it("requires HIBP_API_KEY only in live provider mode", () => {
     expect(issuesFor(validSource({ PROVIDER_MODE: "live" })).join()).toContain("HIBP_API_KEY");
-    expect(issuesFor(validSource({ PROVIDER_MODE: "live", HIBP_API_KEY: "k" }))).toEqual([]);
+    expect(
+      issuesFor(validSource({ PROVIDER_MODE: "live", HIBP_API_KEY: "0123456789abcdef0123456789ABCDEF" })),
+    ).toEqual([]);
+    expect(issuesFor(validSource({ PROVIDER_MODE: "live", HIBP_API_KEY: "not-a-key" })).join()).toContain(
+      "HIBP_API_KEY",
+    );
   });
 
   it("treats empty values (`KEY=` lines) as unset so defaults apply", () => {

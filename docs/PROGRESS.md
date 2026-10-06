@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: 2026-10-06 (end of Phase 4)_
+_Last updated: 2026-10-06 (end of Phase 5)_
 
 ## Phase 0: Repository audit (done)
 
@@ -104,14 +104,38 @@ Built and verified (decisions D-023 to D-025):
 - `scripts/seed.ts` (spec 4.3) needs exposures, so it lands in Phase 5.
 - Landing-page copy: encryption and masking claims are now true. Export and delete are still pending (re-verify in Phase 13).
 
+## Phase 5: Exposure engine (done)
+
+Built and verified (docs/EXPOSURE-ENGINE.md, docs/PROVIDERS.md, decisions D-026 to D-028):
+
+- [x] HIBP terms, pricing (Core 1: 10 RPM, $4.39/mo), key/User-Agent requirements, CC BY 4.0 attribution checked and recorded (D-012 resolved for the build; a live key is still needed to run it)
+- [x] HIBP adapter: fixed endpoint, Zod-validated responses, data-class mapping, error mapping incl. Retry-After; fabricated/retired breaches dropped, HTML never stored. Contract-tested against fixtures recorded from HIBP's public breach endpoints
+- [x] Mock scenarios (clean, single, multiple, duplicate, failing, partial-failure, slow-timeout) and deterministic demo providers over a fictional catalog
+- [x] One provider contract suite run against every provider
+- [x] Email normalization corrected to spec 7.4 (NFC, IDNA domain, reject malformed)
+- [x] Severity classifier (spec 7.6 matrix, monotonicity-tested) + display-only age modifier
+- [x] Source-key normalization, fingerprint, same-incident matching, deterministic dedupe/merge
+- [x] Engine: parallel providers, per-attempt timeout, bounded retry with jitter, circuit breaker (`providerStates`), shared Redis rate budget, partial results
+- [x] `Breach` catalog, `Exposure` (idempotent upserts, detection states new/changed/existing/no_longer_reported, remediation untouched), cascade delete with the identity
+- [x] `checkIdentityExposures` orchestrator: verified identities only, decrypt in memory, failed checks write nothing, `EXPOSURE_DETECTED` audit
+- [x] `npm run seed`: demo account + identity + demo exposures (mock mode only, refuses production)
+- [x] Tests: unit (normalization, severity, source key, fingerprint, dedupe, resilience, provider contract); integration (end to end against MongoDB: clean, multiple, duplicates, cross-provider merge, partial/total failure, timeout, idempotency, concurrent runs, changed, no-longer-reported, remediation preserved, shared catalog, unverified/foreign identities, circuit breaker open/close, rate budget, no identifier at rest, audit)
+
+**Known gaps / carried forward:**
+
+- The scan lifecycle (persisted states, progress over SSE, lock, cooldown) is Phase 6. Nothing in the UI triggers a check yet.
+- The UI must show "Demo data" for `isDemo` exposures and HIBP attribution wherever HIBP data appears (Phase 7).
+- Live HIBP needs the owner's paid key (D-012).
+- Risk score (`calculateRiskScore`) and `RiskScore` snapshots are Phase 7.
+
 ## In progress
 
 None.
 
 ## Blocked / needs owner input
 
-- **HIBP API key** (paid). Needed only to run the live provider. Phase 5 builds and tests the adapter against fixtures without it (D-012).
+- **HIBP API key** (paid; Core 1 is enough for development). Needed only to run the live provider.
 
-## Next: Phase 5, exposure engine
+## Next: Phase 6, scanning
 
-Check HIBP's current terms, pricing and rate limits (D-012) and write them up in PROVIDERS.md. Then build the mock provider and the HIBP adapter (contract-tested against recorded fixtures), the `Breach` catalog, normalization, fingerprinting and dedupe, matching, the severity classifier, `Exposure` storage with idempotent upserts, `ProviderState`, `scripts/seed.ts`, and comprehensive tests.
+Build the `Scan` model (persisted states `queued → running → normalizing → matching → scoring → completed | partial | failed`, compare-and-set transitions, per-provider sub-results), a `ScanQueue` interface with an in-process adapter, one active scan per identity (unique partial index), a 15-minute manual cooldown, SSE progress from persisted state, retry of failed sources, the onboarding scan/results pages, and integration tests.

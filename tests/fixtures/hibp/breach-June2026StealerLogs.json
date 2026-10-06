@@ -1,0 +1,22 @@
+{
+  "Name": "June2026StealerLogs",
+  "Title": "June 2026 Stealer Logs",
+  "Domain": "",
+  "BreachDate": "2026-06-15",
+  "AddedDate": "2026-06-15T19:30:15Z",
+  "ModifiedDate": "2026-06-15T19:36:36Z",
+  "PwnCount": 56278397,
+  "Description": "In June 2026, a collection of accumulated stealer logs from various sources was added to HIBP. The corpus comprised 56M unique email addresses across hundreds of millions of stealer log records. The data also contained 124M unique passwords, which have been added to <a href=\"https://haveibeenpwned.com/Passwords\">Pwned Passwords</a> and are now searchable. Individuals can view any records captured against their email address in <a href=\"https://haveibeenpwned.com/Dashboard/Redirect/StealerLogs\">the stealer logs section of their dashboard</a>. Organisations can see logs affecting their domain via <a href=\"https://haveibeenpwned.com/API/v3#StealerLogsOverview\">the stealer logs API</a>.",
+  "LogoPath": "https://logos.haveibeenpwned.com/List.png",
+  "Attribution": null,
+  "DisclosureUrl": null,
+  "DataClasses": ["Email addresses", "Passwords"],
+  "IsVerified": true,
+  "IsFabricated": false,
+  "IsSensitive": false,
+  "IsRetired": false,
+  "IsSpamList": false,
+  "IsMalware": false,
+  "IsSubscriptionFree": false,
+  "IsStealerLog": true
+}

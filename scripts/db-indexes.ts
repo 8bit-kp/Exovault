@@ -7,6 +7,9 @@ import mongoose from "mongoose";
 import { getEnv } from "@/config/env";
 import { ensureAuthIndexes } from "@/lib/db/auth-indexes";
 import { AuditLog } from "@/models/AuditLog";
+import { Breach } from "@/models/Breach";
+import { Exposure } from "@/models/Exposure";
+import { ProviderState } from "@/models/ProviderState";
 import { Identity } from "@/models/Identity";
 import { IdentityQuota } from "@/models/IdentityQuota";
 import { IdentityVerification } from "@/models/IdentityVerification";
@@ -16,7 +19,15 @@ async function main() {
   await mongoose.connect(uri, { autoIndex: false, serverSelectionTimeoutMS: 5_000 });
   const client = new MongoClient(uri);
   try {
-    for (const model of [AuditLog, Identity, IdentityVerification, IdentityQuota]) {
+    for (const model of [
+      AuditLog,
+      Identity,
+      IdentityVerification,
+      IdentityQuota,
+      Breach,
+      Exposure,
+      ProviderState,
+    ]) {
       const dropped = await model.syncIndexes();
       console.log(
         `${model.collection.name}: synced (dropped: ${dropped.length ? dropped.join(", ") : "none"})`,

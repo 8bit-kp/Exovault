@@ -1,6 +1,6 @@
 # Privacy data model
 
-> Status: **Phase 4.** Covers account data and monitored identifiers. Exposures (Phase 5), retention jobs, export and deletion are added as they're built. This is documentation for a portfolio project, not legal advice.
+> Status: **Phase 5.** Covers account data, monitored identifiers and exposures. Retention jobs, export and deletion are added as they're built. This is documentation for a portfolio project, not legal advice.
 
 ## What we store about an account
 
@@ -26,6 +26,14 @@
 
 Removing an identity deletes the encrypted value, the index, the mask and any pending code at once. The full address is decrypted only at the moments listed in D-023, and every reveal is recorded in the audit log, by identity ID only.
 
+## Exposures
+
+| Data                   | Where       | Form                                                                                       | Retention                                              |
+| ---------------------- | ----------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------ |
+| Normalized exposure    | `exposures` | source name, incident date, data **categories** (never the leaked values), severity, state | until the identity is removed (purge job: later phase) |
+| Breach catalog         | `breaches`  | public breach metadata, no personal data                                                   | indefinitely (shared reference)                        |
+| Raw provider responses | —           | **not persisted**: parsed in memory, mapped, discarded                                     | —                                                      |
+
 ## What we don't store
 
 Plaintext passwords; plaintext monitored identifiers; raw IP addresses; verification codes or reset tokens in clear; email addresses in URLs, Redis keys, audit rows or logs.
@@ -34,6 +42,7 @@ Plaintext passwords; plaintext monitored identifiers; raw IP addresses; verifica
 
 | Processor                                | What is sent                                                 | When                                                        |
 | ---------------------------------------- | ------------------------------------------------------------ | ----------------------------------------------------------- |
+| Have I Been Pwned (live mode only)       | the normalized monitored email address, over HTTPS           | each scan of a verified identity                            |
 | Pwned Passwords (api.pwnedpasswords.com) | first 5 hex characters of the password's SHA-1 (k-anonymity) | sign-up and password reset, when `PASSWORD_BREACH_CHECK=on` |
 | Email provider (SMTP)                    | recipient address, message                                   | verification, reset, account notices                        |
 

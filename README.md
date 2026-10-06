@@ -2,7 +2,7 @@
 
 **A privacy-first exposure intelligence platform for individuals.** Exovault checks whether your _verified_ identifiers appear in legitimate breach and credential-exposure sources, and tells you what to do about it.
 
-> **Status: early development (Phase 4 of 13: identity).** Accounts work end to end, and users can add an email identity, prove they own it, and see it stored encrypted (AES-256-GCM, keyed blind index, masked display). Scanning and exposures are not built yet. Browse the component reference at `/design-system` (fictional data). See [`docs/PROGRESS.md`](docs/PROGRESS.md).
+> **Status: early development (Phase 5 of 13: exposure engine).** Accounts and verified identities work end to end. The exposure engine (HIBP adapter + deterministic demo providers, normalization, dedupe, severity, idempotent storage) is built and tested; the UI that starts scans and shows results comes in Phases 6–7. Browse the component reference at `/design-system` (fictional data). See [`docs/PROGRESS.md`](docs/PROGRESS.md).
 
 ## What it is not
 
@@ -18,6 +18,7 @@ npm run env:init          # creates .env.local with freshly generated secrets
 docker compose up -d      # Redis (noeviction) + Mailpit (http://localhost:8025)
 #   …or natively: brew install redis mailpit && mailpit
 npm run db:indexes        # create MongoDB indexes explicitly
+npm run seed              # demo account with fictional exposures (PROVIDER_MODE=mock)
 # npm run keys:rotate     # after changing IDENTIFIER_ENCRYPTION_ACTIVE_KEY_ID
 npm run dev
 ```
@@ -35,4 +36,4 @@ npm run test:e2e          # Playwright vs a production build; starts Mailpit; us
 
 ## Documentation
 
-[Architecture](docs/ARCHITECTURE.md) · [Database](docs/DATABASE.md) · [Threat model](docs/THREAT-MODEL.md) · [Design system](docs/DESIGN-SYSTEM.md) · [Security](docs/SECURITY.md) · [Privacy data model](docs/PRIVACY-DATA-MODEL.md) · [Decisions](docs/DECISIONS.md) · [Progress](docs/PROGRESS.md) · [Build spec](docs/MASTER-PROMPT.md)
+[Architecture](docs/ARCHITECTURE.md) · [Database](docs/DATABASE.md) · [Threat model](docs/THREAT-MODEL.md) · [Design system](docs/DESIGN-SYSTEM.md) · [Security](docs/SECURITY.md) · [Exposure engine](docs/EXPOSURE-ENGINE.md) · [Providers](docs/PROVIDERS.md) · [Privacy data model](docs/PRIVACY-DATA-MODEL.md) · [Decisions](docs/DECISIONS.md) · [Progress](docs/PROGRESS.md) · [Build spec](docs/MASTER-PROMPT.md)

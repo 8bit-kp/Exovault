@@ -328,6 +328,23 @@ export async function removeIdentity(
   return { ok: true };
 }
 
+/**
+ * Runs `fn` with the decrypted identifier, for the scan engine only (spec 5.1):
+ * the value lives in this call's memory and is never returned. Refuses
+ * identities that aren't verified (spec 2.3: ownership before any lookup).
+ */
+export async function withDecryptedIdentity<T>(
+  userId: string,
+  identityId: string,
+  fn: (identifier: { type: "email"; normalizedValue: string }) => Promise<T>,
+): Promise<{ ok: true; value: T } | { ok: false; reason: "not_found" | "not_verified" }> {
+  const identity = await findActiveIdentityForUser(userId, identityId);
+  if (!identity) return { ok: false, reason: "not_found" };
+  if (identity.verificationStatus !== "verified") return { ok: false, reason: "not_verified" };
+  const normalizedValue = decryptField(identity.valueEncrypted, aadFor(identity._id));
+  return { ok: true, value: await fn({ type: "email", normalizedValue }) };
+}
+
 export async function listIdentities(userId: string): Promise<IdentityView[]> {
   return (await listActiveIdentitiesForUser(userId)).map(toView);
 }

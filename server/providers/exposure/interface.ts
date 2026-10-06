@@ -19,6 +19,10 @@ export type RateLimitSpec = {
 export type ProviderCapabilities = {
   identifierTypes: readonly IdentifierType[];
   rateLimit: RateLimitSpec;
+  /** Required credit wherever this provider's data is shown (e.g. HIBP, CC BY 4.0). */
+  attribution?: { name: string; url: string };
+  /** True for deterministic demo providers: anything they return must be labelled "Demo data" (spec 4.3). */
+  isDemo?: boolean;
 };
 
 /** A normalized, validated identifier, decrypted in memory for the call only. */
@@ -58,7 +62,13 @@ export type ProviderErrorCategory = (typeof PROVIDER_ERROR_CATEGORIES)[number];
 
 export type ProviderSearchResult =
   | { status: "ok"; exposures: ProviderExposure[]; checkedAt: Date }
-  | { status: "error"; category: ProviderErrorCategory; retryable: boolean };
+  | {
+      status: "error";
+      category: ProviderErrorCategory;
+      retryable: boolean;
+      /** Provider-advised wait (e.g. HTTP Retry-After), when known. */
+      retryAfterMs?: number;
+    };
 
 export interface ExposureProvider {
   getName(): string;

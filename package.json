@@ -14,11 +14,12 @@
     "format:check": "prettier --check .",
     "env:init": "tsx scripts/env-init.ts",
     "test:e2e": "next build && playwright test",
-    "db:indexes": "tsx --env-file-if-exists=.env.local scripts/db-indexes.ts",
-    "db:reset": "tsx --env-file-if-exists=.env.local scripts/db-reset.ts",
+    "db:indexes": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/db-indexes.ts",
+    "db:reset": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/db-reset.ts",
     "test:unit": "vitest run --project node --project components",
     "test:integration": "vitest run --project integration",
-    "keys:rotate": "tsx --env-file-if-exists=.env.local scripts/rotate-identity-keys.ts"
+    "keys:rotate": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/rotate-identity-keys.ts",
+    "seed": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/seed.ts"
   },
   "dependencies": {
     "better-auth": "^1.7.7",

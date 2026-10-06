@@ -8,7 +8,7 @@ import {
   rotateField,
   type Keyring,
 } from "@/lib/crypto/field-encryption";
-import { normalizeIdentifier } from "@/lib/domain/identifier";
+import { normalizeEmail, normalizeIdentifier } from "@/lib/domain/identifier";
 
 const key = () => randomBytes(32).toString("base64");
 const v1 = key();
@@ -81,14 +81,40 @@ describe("field encryption", () => {
   });
 });
 
-describe("normalizeIdentifier", () => {
-  it("lower-cases, trims and NFKC-normalizes emails", () => {
-    expect(normalizeIdentifier("email", "  Ana@EXAMPLE.com ")).toBe("ana@example.com");
-    expect(normalizeIdentifier("email", "ａｎａ@example.com")).toBe("ana@example.com");
+describe("email normalization (spec 7.4)", () => {
+  it.each([
+    ["trims", "  ana@example.com ", "ana@example.com"],
+    ["lower-cases the domain", "ana@EXAMPLE.COM", "ana@example.com"],
+    ["lower-cases the local part", "Ana.B@example.com", "ana.b@example.com"],
+    ["composes Unicode (NFC)", "jose\u0301@example.com", "jos\u00e9@example.com"],
+    ["converts IDN domains to punycode", "ana@bücher.de", "ana@xn--bcher-kva.de"],
+    ["keeps dots", "a.n.a@gmail.com", "a.n.a@gmail.com"],
+    ["keeps +tags", "ana+news@gmail.com", "ana+news@gmail.com"],
+  ])("%s", (_rule, input, expected) => {
+    expect(normalizeEmail(input)).toBe(expected);
+    expect(normalizeIdentifier("email", input)).toBe(expected);
   });
 
-  it("keeps dots and +tags: they are distinct literal addresses", () => {
-    expect(normalizeIdentifier("email", "a.n.a+x@gmail.com")).toBe("a.n.a+x@gmail.com");
+  it("does not fold compatibility characters (NFC, not NFKC)", () => {
+    expect(normalizeEmail("ａｎａ@example.com")).not.toBe("ana@example.com");
+  });
+
+  it.each([
+    "plainaddress",
+    "@example.com",
+    "ana@",
+    "ana@@example.com",
+    "ana@exa mple.com",
+    "ana@example",
+    ".ana@example.com",
+    "ana.@example.com",
+    "a..na@example.com",
+    "ana@example.com/path",
+    "ana@[127.0.0.1]",
+    `${"a".repeat(65)}@example.com`,
+  ])("rejects malformed %s instead of fixing it", (input) => {
+    expect(normalizeEmail(input)).toBeNull();
+    expect(() => normalizeIdentifier("email", input)).toThrow();
   });
 
   it("rejects identifier types that aren't supported yet", () => {

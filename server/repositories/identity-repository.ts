@@ -3,6 +3,7 @@ import mongoose, { Types } from "mongoose";
 import { connectToDatabase } from "@/lib/db/mongoose";
 import type { IdentifierType } from "@/lib/domain/exposure";
 import type { EncryptedValue } from "@/lib/crypto/field-encryption";
+import { Exposure } from "@/models/Exposure";
 import { Identity, type IdentityDoc } from "@/models/Identity";
 import { IdentityQuota } from "@/models/IdentityQuota";
 import { IdentityVerification } from "@/models/IdentityVerification";
@@ -104,7 +105,11 @@ export async function deleteIdentityForUser(userId: string, identityId: string):
   await connectToDatabase();
   const deleted = await Identity.findOneAndDelete({ _id, userId, status: "active" });
   if (!deleted) return false;
-  await IdentityVerification.deleteMany({ identityId: _id });
+  // Spec 5.2: exposures live exactly as long as their identity.
+  await Promise.all([
+    IdentityVerification.deleteMany({ identityId: _id }),
+    Exposure.deleteMany({ identityId: _id, userId }),
+  ]);
   return true;
 }
 
@@ -127,7 +132,7 @@ export async function claimIdentitySlot(userId: string, limit: number): Promise<
       const doc = await IdentityQuota.findOneAndUpdate(
         { userId, active: mongoose.trusted({ $lt: limit }) },
         { $inc: { active: 1 } },
-        { upsert: true, new: true },
+        { upsert: true, returnDocument: "after" },
       );
       return doc !== null;
     } catch (error) {
@@ -196,7 +201,7 @@ export async function spendVerificationAttempt(
       attempts: mongoose.trusted({ $lt: maxAttempts }),
     },
     { $inc: { attempts: 1 } },
-    { new: true, projection: { codeHash: 1, attempts: 1 } },
+    { returnDocument: "after", projection: { codeHash: 1, attempts: 1 } },
   ).lean<{ _id: Types.ObjectId; codeHash: string; attempts: number }>();
 }
 

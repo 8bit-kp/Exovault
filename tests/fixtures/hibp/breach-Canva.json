@@ -1,0 +1,22 @@
+{
+  "Name": "Canva",
+  "Title": "Canva",
+  "Domain": "canva.com",
+  "BreachDate": "2019-05-24",
+  "AddedDate": "2019-08-09T14:24:01Z",
+  "ModifiedDate": "2019-08-09T14:24:01Z",
+  "PwnCount": 137272116,
+  "Description": "In May 2019, the graphic design tool website <a href=\"https://support.canva.com/contact/customer-support/may-24-security-incident-faqs/\" target=\"_blank\" rel=\"noopener\">Canva suffered a data breach</a> that impacted 137 million subscribers. The exposed data included email addresses, usernames, names, cities of residence and passwords stored as bcrypt hashes for users not using social logins.",
+  "LogoPath": "https://logos.haveibeenpwned.com/Canva.png",
+  "Attribution": "JimScott.Sec@protonmail.com",
+  "DisclosureUrl": null,
+  "DataClasses": ["Email addresses", "Geographic locations", "Names", "Passwords", "Usernames"],
+  "IsVerified": true,
+  "IsFabricated": false,
+  "IsSensitive": false,
+  "IsRetired": false,
+  "IsSpamList": false,
+  "IsMalware": false,
+  "IsSubscriptionFree": false,
+  "IsStealerLog": false
+}

@@ -1,6 +1,6 @@
 # Architecture
 
-> Status: **Phase 4.** Built: identities (encrypted storage, blind index, masking, ownership verification, onboarding; §6). Also built: the UI layer ([DESIGN-SYSTEM.md](DESIGN-SYSTEM.md)), `proxy.ts` (CSP, request ID, coarse `/app` redirect), and authentication ([SECURITY.md](SECURITY.md)): Server Actions → `server/services/account` → Better Auth in-process, Redis rate limits, audit log. Each section says whether it is **built** or **designed**. Nothing marked _designed_ exists in code yet.
+> Status: **Phase 5.** Built: the exposure engine (§4), identities (encrypted storage, blind index, masking, ownership verification, onboarding; §6). Also built: the UI layer ([DESIGN-SYSTEM.md](DESIGN-SYSTEM.md)), `proxy.ts` (CSP, request ID, coarse `/app` redirect), and authentication ([SECURITY.md](SECURITY.md)): Server Actions → `server/services/account` → Better Auth in-process, Redis rate limits, audit log. Each section says whether it is **built** or **designed**. Nothing marked _designed_ exists in code yet.
 
 ## 1. System overview
 
@@ -50,7 +50,7 @@
 Errors map to safe categories (`not_found`, `rate_limited`, `invalid_input`, `conflict`, `unavailable`), with no stack traces and no enumeration. Another user's resource returns **not found**, never forbidden.
 Route Handlers that change state check `Origin` explicitly. Server Actions rely on Next's built-in origin check.
 
-## 4. Exposure engine (designed; spec Part 7)
+## 4. Exposure engine (**built**, Phase 5; spec Part 7, see [EXPOSURE-ENGINE.md](EXPOSURE-ENGINE.md) and [PROVIDERS.md](PROVIDERS.md))
 
 ```text
 Identity ─decrypt in memory─▶ normalize ─▶ validate

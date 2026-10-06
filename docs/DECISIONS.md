@@ -208,3 +208,31 @@ Format: **Context → Options → Decision → Consequences.** Newest last. Stat
 - **Context:** App pages stream: the layout flushes before the page body, so `notFound()` renders the not-found UI with HTTP **200** plus `noindex` (documented Next 16 behaviour). A real 404 status would need the ownership check in `proxy.ts`, which D-003 rules out (no DB in the proxy).
 - **Decision:** Accept the soft 404. Another user's identity renders exactly the same in-app "Not found" page as a non-existent ID. It shows no data and gives no different signal. E2E asserts this, including the `noindex` tag. Server Actions and services return `not_found` for both cases.
 - **Consequences:** Status codes don't reveal existence either, since both cases return the same 200. Public, non-streamed routes still return a true 404.
+
+## D-026 — Matching window and fingerprint contents (2026-10-06)
+
+- **Context:** Spec 7.5 lists the sorted data categories and the provider reference as fingerprint inputs. Spec 7.7 also needs "provider added data classes" to be CHANGED, and spec 7.5 needs the same breach from different providers to merge. Data categories in the fingerprint would turn CHANGED into a second exposure. A provider reference in it would stop cross-provider merges.
+- **Decision:** The fingerprint is identity + normalized source key + incident day. Matching to stored exposures uses a "same incident" predicate rather than exact fingerprint equality: same source key, with dates within 31 days or either date unknown. That tolerates providers that disagree by a few days on the incident date. The fingerprint is the stable ID assigned at first sight, and the unique index makes inserts idempotent.
+- **Consequences:**
+  - Two genuinely separate incidents at one source more than 31 days apart stay separate.
+  - Two incidents at the same source within 31 days would merge. That's rare, and a merged record still points the user at the right account.
+
+## D-027 — HIBP mapping choices (2026-10-06)
+
+- **Decision:**
+  - HIBP "Passwords" → `password_hash` (High). HIBP doesn't say whether passwords were hashed or plaintext. Mapping it to plaintext would make nearly every breach Critical and dilute the signal. The remediation advice ("change this password and any reuse") is the same either way.
+  - Fabricated breaches (`IsFabricated`) and retired breaches are dropped.
+  - Spam lists become source type `other` with confidence 0.5.
+  - Stealer logs and malware become `stealer_log`, which is Critical.
+  - Our matrix adds "home address alone → Medium", which the spec's matrix doesn't list.
+  - The provider's HTML description is never stored: only plain-text fields we map.
+- **Consequences:** Severity may understate breaches that did leak plaintext passwords. The evidence link to HIBP's breach page gives the detail.
+
+## D-028 — Demo providers, demo flag, seed, and the NFC correction (2026-10-06)
+
+- **Decision:**
+  - **Demo mode:** `PROVIDER_MODE=mock` uses two deterministic demo providers over a fictional catalog. Every result is persisted with `isDemo: true` on both the exposure and the catalog row. From Phase 7, the UI must show "Demo data" for these.
+  - **Seed:** `npm run seed` refuses production and refuses live mode. It creates `demo@exovault.example` through the public auth API and marks it verified, adds the identity, and runs a real engine check against the demo providers.
+  - **Scripts:** they run with `tsx --conditions=react-server`, so modules guarded by `server-only` load.
+  - **NFC correction:** spec 7.4 requires NFC and an IDNA/punycode domain. Phase 4's normalizer used NFKC with no IDNA, so it was corrected. Blind indexes for addresses whose NFC and NFKC forms differ would change; nothing deployed is affected.
+- **Consequences:** Demo results are reproducible across machines. Tests and the seed never touch a live API.

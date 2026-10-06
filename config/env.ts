@@ -73,7 +73,12 @@ const envSchema = z
     REDIS_URL: z.url().default("redis://127.0.0.1:6379"),
 
     PROVIDER_MODE: z.enum(["mock", "live"]).default("mock"),
-    HIBP_API_KEY: z.string().min(1).optional(),
+    HIBP_API_KEY: z
+      .string()
+      .regex(/^[0-9a-f]{32}$/i, "must be the 32-character hexadecimal key from haveibeenpwned.com/API/Key")
+      .optional(),
+    // Must match the purchased HIBP subscription (Core 1 = 10).
+    HIBP_REQUESTS_PER_MINUTE: z.coerce.number().int().min(1).max(100_000).default(10),
 
     IDENTIFIER_ENCRYPTION_KEYS: keyring,
     IDENTIFIER_ENCRYPTION_ACTIVE_KEY_ID: z.string().min(1),
