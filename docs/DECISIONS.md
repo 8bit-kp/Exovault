@@ -18,6 +18,7 @@ Format: **Context → Options → Decision → Consequences.** Newest last. Stat
   - **Auth.js**: v5 is still `5.0.0-beta.32`. The stable `next-auth@4.24.15` (last modified 2026-07-20) targets the older patterns, and its email/password support is deliberately limited.
 - **Decision:** Better Auth. We'll re-check the exact plugin APIs at the start of Phase 3 and record any differences here.
 - **Consequences:** Session storage, email verification, and MFA come from the library; we don't write crypto primitives. Its tables become Mongo collections (`user`, `session`, `account`, `verification`). Our `User` profile data either extends them or links to them by ID (Phase 3 decides).
+- **Phase 3 re-check (2026-10-06):** APIs verified against the installed 1.7.7 source, not docs from memory. Details and the resulting choices are in D-018 and D-019. App-specific per-user data will live in our own collections keyed by the Better Auth user id; we don't extend the library's `user` schema.
 
 ## D-003 — `proxy.ts` (formerly middleware) only handles headers and coarse redirects (2026-10-06)
 
@@ -105,4 +106,64 @@ Format: **Context → Options → Decision → Consequences.** Newest last. Stat
 ## D-017 — Temporary auth stubs (2026-10-06)
 
 - **Context:** The landing CTA points to `/auth/sign-up`, which Phase 3 builds. A 404 there breaks the primary journey and shows up as console errors from link prefetching.
-- **Decision:** `/auth/sign-up` and `/auth/sign-in` render the real `AuthShell` with an honest "Accounts aren't open yet" notice and no inputs. Phase 3 replaces both. `/app/*` links in the shell preview still 404; the E2E fixture lists them in `NOT_YET_BUILT`, and Phase 3 should empty that list.
+- **Decision:** `/auth/sign-up` and `/auth/sign-in` render the real `AuthShell` with an honest "Accounts aren't open yet" notice and no inputs. Phase 3 replaces both. **Superseded in Phase 3:** both are real now and `NOT_YET_BUILT` is empty. `/app/*` links in the shell preview still 404; the E2E fixture lists them in `NOT_YET_BUILT`, and Phase 3 should empty that list.
+
+## D-018 — Auth runs in-process through Server Actions; no `/api/auth` HTTP surface (2026-10-06)
+
+- **Context:** Better Auth normally mounts `/api/auth/*`. Its built-in rate limiter only applies to that HTTP router, is per-process memory, and is per-IP only. Spec 12.3 needs Redis-backed, per-account and per-IP limits that fail closed.
+- **Options:** (a) mount the handler and add limits in hooks; (b) call `auth.api.*` in-process from Server Actions and mount no handler.
+- **Decision:** (b). Every credential flow is a Server Action: Zod validation → our Redis rate limits → `auth.api.*` → audit event → safe `FormState`. The verification code and reset token both come back to our own pages, so no auth HTTP route is needed. A test asserts no `app/**/api/auth/route.*` exists, and E2E asserts `POST /api/auth/sign-in/email` returns 404.
+- **Consequences:** One code path, so the limits can't be bypassed by calling the library's HTTP endpoints directly. CSRF on these flows comes from Next's Server Action Origin/Host check. Better Auth's own origin middleware only runs on its router; we keep `disableOriginCheck: false` anyway. The client SDK isn't used. Cookies are set through the `nextCookies()` plugin.
+- **Cookie details:**
+  - Over HTTPS the session cookie is `__Host-exovault.session_token`. This requires `useSecureCookies: false`, otherwise Better Auth would prepend `__Secure-`; `secure` is then set explicitly through `defaultCookieAttributes`.
+  - Over plain http (dev/E2E) the name is `exovault.session_token`.
+  - The cookie is HttpOnly and SameSite=Lax. Cookie cache is off, so revocation takes effect on the next request.
+
+## D-019 — Email verification by one-time code; reset links with hashed single-use tokens (2026-10-06)
+
+- **Context:** Better Auth's default verification link is a stateless JWT. It carries the email address in the URL (spec 5.1) and can't be single-use or revoked (spec Part 6).
+- **Decision:** Use the `emailOTP` plugin with `overrideDefaultEmailVerification`:
+  - 6 digits, 10-minute expiry, 3 attempts per code.
+  - `storeOTP: "hashed"`.
+  - Verifying signs the user in.
+  - Code checks share the sign-in rate-limit budget.
+
+  Password reset uses the core flow: a 30-minute, single-use token stored as a SHA-256 hash (`verification.storeIdentifier: "hashed"`), with `revokeSessionsOnPasswordReset`. The verify page learns which address it's verifying from a 15-minute AES-GCM sealed HttpOnly cookie (`lib/crypto/sealed.ts`), never from the URL.
+
+- **Password policy (NIST 800-63B):**
+  - 12–128 characters, with no composition rules.
+  - Screened against Pwned Passwords via the k-anonymity range API (`haveIBeenPwned` plugin, `PASSWORD_BREACH_CHECK=on`). Only the first 5 hex characters of the SHA-1 leave the server. The plaintext is necessarily on our server at that moment, which is the nuance the spec asks us to document.
+  - Off in automated tests (no live third-party calls).
+- **Enumeration safety:**
+  - Sign-up returns the same result for new and existing addresses; the existing owner gets an "account exists" email instead.
+  - Sign-in returns one message for a wrong password and for an unknown account.
+  - Reset always reports "if an account uses that address…".
+  - Emails are sent as background tasks, so response time doesn't depend on whether the account exists.
+
+## D-020 — Redis fixed-window rate limiter, keys hashed (2026-10-06)
+
+- **Decision:**
+  - `lib/rate-limit` uses an atomic Lua `INCR` + `PEXPIRE` fixed window. The rules are in `config/rate-limits.ts` and match the spec 12.3 defaults.
+  - Every auth rule is `failClosed`: if Redis is unreachable, the request is refused ("temporarily unavailable") and the auth library is never called.
+  - Keys are `rl:<rule>:<HMAC(subject)>`, using an HKDF-derived subkey per purpose (`lib/crypto/keyed-hash.ts`), so Redis never holds raw emails or IPs.
+  - The Redis client has a 2 s command timeout. At 1 s, a cold connection on a busy machine failed closed for legitimate users.
+- **Consequences:** A fixed window allows up to 2× the limit across a window boundary. This is acceptable for these limits and much simpler than a sliding log; we'll revisit if abuse patterns need it.
+
+## D-021 — Client IP and trusted proxies (2026-10-06)
+
+- **Context:** Next.js fills `X-Forwarded-For` from the socket only if the client didn't send one. Next 16 has no `request.ip`.
+- **Decision:** `TRUSTED_PROXY_COUNT` (default 0) chooses which XFF entry to trust: the n-th from the right, i.e. the one our nearest trusted proxy appended. Session rows store no IP at all (`disableIpTracking`). The audit log stores a keyed hash of the IP.
+- **Consequences:**
+  - **Residual risk:** with no proxy in front, a client can spoof its IP and dodge _per-IP_ limits. _Per-account_ limits still hold. Deploy behind a proxy and set the count (docs/DEPLOYMENT.md, Phase 13).
+  - E2E runs with `TRUSTED_PROXY_COUNT=1` and a random XFF per test, simulating one proxy, so parallel tests don't share an IP budget. A dedicated test proves the 6th attempt is refused.
+
+## D-022 — Audit log is append-only, best-effort, hashed (2026-10-06)
+
+- **Decision:**
+  - `models/AuditLog.ts` (collection `auditLogs`) uses `strict: "throw"`. Update and delete middleware throw, and a TTL index expires rows after 12 months.
+  - Rows hold Better Auth user IDs, an event enum, the outcome, the request ID, and keyed hashes of the subject (e.g. the sign-in email, so repeated failures correlate) and the IP. No raw identifiers.
+  - Writes are best-effort: a failed audit write is logged at error level but doesn't fail the user's sign-in.
+- **Consequences:**
+  - An outage of the audit store loses events rather than locking users out. Error-level logs make the gap visible.
+  - Anonymisation after account deletion (spec 5.2) will need a privileged path that bypasses the model hooks. It arrives with account deletion.
+  - TOTP and passkeys are deferred: Phase 3's scope is sign-up/in/out, verification, sessions, rate limits and audit. The settings page says "not available yet" honestly. Adding the `twoFactor` plugin is a drop-in change.

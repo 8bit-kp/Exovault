@@ -80,8 +80,16 @@ const envSchema = z
     BLIND_INDEX_PEPPER: base64Key32,
     AUTH_SECRET: z.string().min(32, "must be at least 32 characters (run `npm run env:init`)"),
 
+    // Check new passwords against the Pwned Passwords range API (k-anonymity). Off in automated tests.
+    PASSWORD_BREACH_CHECK: z.enum(["on", "off"]).default("on"),
+    // Number of reverse proxies in front of the app whose X-Forwarded-For entries we trust (D-021).
+    TRUSTED_PROXY_COUNT: z.coerce.number().int().min(0).max(5).default(0),
+
     SMTP_HOST: z.string().default("127.0.0.1"),
     SMTP_PORT: z.coerce.number().int().positive().default(1025),
+    SMTP_SECURE: z.enum(["true", "false"]).default("false"),
+    SMTP_USER: z.string().min(1).optional(),
+    SMTP_PASSWORD: z.string().min(1).optional(),
     EMAIL_FROM: z.string().default("Exovault <no-reply@exovault.example>"),
 
     MAX_ACTIVE_IDENTITIES_PER_USER: z.coerce.number().int().min(1).max(50).default(1),

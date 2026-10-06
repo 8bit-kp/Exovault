@@ -1,6 +1,6 @@
 # Architecture
 
-> Status: **Phase 2.** The UI layer (design system, layouts, `proxy.ts` CSP) is **built**; see [DESIGN-SYSTEM.md](DESIGN-SYSTEM.md). Each section says whether it is **built** or **designed**. Nothing marked _designed_ exists in code yet.
+> Status: **Phase 3.** Built: the UI layer ([DESIGN-SYSTEM.md](DESIGN-SYSTEM.md)), `proxy.ts` (CSP, request ID, coarse `/app` redirect), and authentication ([SECURITY.md](SECURITY.md)): Server Actions → `server/services/account` → Better Auth in-process, Redis rate limits, audit log. Each section says whether it is **built** or **designed**. Nothing marked _designed_ exists in code yet.
 
 ## 1. System overview
 

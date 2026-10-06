@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: 2026-10-06 (end of Phase 2)_
+_Last updated: 2026-10-06 (end of Phase 3)_
 
 ## Phase 0: Repository audit (done)
 
@@ -57,6 +57,34 @@ Built and verified (see `docs/DESIGN-SYSTEM.md`, decisions D-013 to D-017):
 - The proxy doesn't redirect `/app/*` yet, because the session cookie name comes with Better Auth (Phase 3).
 - Dark theme only (D-013).
 
+## Phase 3: Authentication (done)
+
+Built and verified (see `docs/SECURITY.md`, decisions D-018 to D-022):
+
+- [x] Better Auth 1.7.7 re-checked against installed source (D-002); Mongo adapter without transactions; `nextCookies`
+- [x] Sign-up, email verification by hashed one-time code (emailOTP plugin), sign-in, sign-out, forgot/reset password with hashed single-use tokens and session revocation
+- [x] Enumeration-safe responses on sign-up, sign-in and reset; "account exists" and "password changed" emails
+- [x] NIST-style password policy (12–128 chars) + Pwned Passwords k-anonymity check (configurable; off in tests)
+- [x] Credential flows run in-process from Server Actions; no `/api/auth` HTTP surface (D-018)
+- [x] Redis rate limits per spec 12.3, keyed by HMAC, fail closed (D-020); trusted-proxy-aware client IP (D-021)
+- [x] Append-only `auditLogs` with hashed subject/IP and a 12-month TTL (D-022)
+- [x] `__Host-` session cookie over HTTPS; sessions store no IP; Settings → Security lists and revokes sessions (IDOR-safe)
+- [x] Protected `/app` layout + pages (`requireSession` everywhere); proxy redirect + request IDs; honest dashboard ("Monitoring: Off", "Not yet scored") and "not available yet" sections
+- [x] `EmailProvider` abstraction (SMTP/Mailpit, in-memory for tests)
+- [x] `npm run db:indexes` (explicit indexes incl. TTLs), `npm run db:reset -- --yes` (local only)
+- [x] Tests: Vitest `integration` project on in-memory standalone MongoDB + Redis DB 15 (flows, hashing at rest, single use, enumeration, rate limits, fail-closed, audit); Playwright journeys through Mailpit (sign-up → code → dashboard → sessions → sign-out → sign-in, reset, replayed cookie, forged cookie, open redirect, 6th attempt blocked)
+- [x] CI: MongoDB, Redis and Mailpit service containers; unit, integration and E2E steps
+- [x] Docs: SECURITY.md, PRIVACY-DATA-MODEL.md (account data), DATABASE.md and THREAT-MODEL.md updated
+
+**Known gaps / carried forward:**
+
+- No MFA (TOTP/passkeys) yet; the settings page says so (D-022).
+- Better Auth stores session tokens in plaintext in `session` (library behaviour; see SECURITY.md).
+- Per-IP limits are spoofable without a trusted proxy (D-021).
+- Onboarding (`/onboarding/*`) arrives with identities in Phase 4; verified users land on the dashboard for now.
+- Landing-page copy still mentions controls built in later phases (identifier encryption, export and delete). Re-verify in Phase 13.
+- Local E2E is load-sensitive on a busy machine: the auth spec runs serially with generous timeouts, and local runs use 4 workers.
+
 ## In progress
 
 None.
@@ -65,6 +93,6 @@ None.
 
 - **HIBP API key** (paid). Needed only to run the live provider. Phase 5 builds and tests the adapter against fixtures without it (D-012).
 
-## Next: Phase 3, authentication
+## Next: Phase 4, identity
 
-Re-check Better Auth plugin APIs (D-002), then build sign-up/in/out, email verification via Mailpit, sessions, the `/app/*` proxy redirect and protected layouts, audit events, and Redis rate limits, with tests.
+Add an email identity with ownership verification (auto-verified when it matches the verified account email), AES-256-GCM field encryption with key versioning, the HMAC blind index (`identity-blind-index` keyed-hash purpose already reserved), masking, the identity limit, identity-creation rate limit, onboarding routes, and an IDOR test matrix.

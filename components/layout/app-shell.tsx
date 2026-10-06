@@ -6,8 +6,10 @@ import { MobileNav } from "./mobile-nav";
 
 interface AppShellProps {
   children: ReactNode;
-  /** Masked account email or display name for the account menu (Phase 3). */
+  /** Sidebar account block (masked email + sign out). */
   account?: ReactNode;
+  /** Compact account control for the mobile top bar. */
+  accountCompact?: ReactNode;
   /** Optional banner above content, e.g. the "Demo data" notice in mock mode. */
   banner?: ReactNode;
 }
@@ -16,7 +18,7 @@ interface AppShellProps {
  * Signed-in layout: fixed sidebar on large screens, top bar + drawer below.
  * The shell holds no data; pages fetch and authorize their own (D-003).
  */
-export function AppShell({ children, account, banner }: AppShellProps) {
+export function AppShell({ children, account, accountCompact, banner }: AppShellProps) {
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[15rem_1fr]">
       <aside className="hidden border-r border-line bg-surface-1/50 lg:flex lg:flex-col">
@@ -39,7 +41,7 @@ export function AppShell({ children, account, banner }: AppShellProps) {
               <Logo />
             </Link>
           </div>
-          {account}
+          {accountCompact}
         </header>
         {banner}
         <main id="main" className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 lg:px-10">

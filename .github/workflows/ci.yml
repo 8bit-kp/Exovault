@@ -11,6 +11,19 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    services:
+      # Standalone MongoDB, same topology as local dev (D-004). Used by E2E; integration tests use mongodb-memory-server.
+      mongo:
+        image: mongo:8.2
+        ports: ["27017:27017"]
+      redis:
+        image: redis:8
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 10
+      mailpit:
+        image: axllent/mailpit:v1.31
+        ports: ["1025:1025", "8025:8025"]
     env:
       # Throwaway CI-only values; config/env.ts validates their shape.
       MONGODB_URI: mongodb://127.0.0.1:27017/exovault
@@ -19,6 +32,7 @@ jobs:
       IDENTIFIER_ENCRYPTION_ACTIVE_KEY_ID: v1
       BLIND_INDEX_PEPPER: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
       AUTH_SECRET: ci-only-not-a-secret-ci-only-not-a-secret
+      PASSWORD_BREACH_CHECK: "off"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -27,12 +41,17 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/mongodb-binaries
+          key: mongodb-binaries-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - run: npm ci
       - run: npm run lint
       - run: npm run format:check
       - run: npm run typecheck
-      - run: npm test
-      # Integration and security suites are added in later phases.
+      - run: npm run test:unit
+      # Integration + security suites: in-memory standalone MongoDB, real Redis (DB 15).
+      - run: npm run test:integration
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test

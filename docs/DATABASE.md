@@ -1,6 +1,6 @@
 # Database Design (MongoDB, database `exovault`)
 
-> Status: **design only (Phase 1).** No models exist yet. Each collection gets built in the phase listed. This document will be updated to match the code.
+> Status: **Phase 3.** Built: Better Auth collections and `auditLogs`. The other collections are designs, built in the phase listed.
 
 ## Principles
 
@@ -12,22 +12,36 @@
 
 ## Collections
 
-| Collection                                               | Phase | Key fields                                                                                                                                                                                                     | Embedded                                  | References       |
-| -------------------------------------------------------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- | ---------------- |
-| Better Auth `user`, `session`, `account`, `verification` | 3     | managed by library                                                                                                                                                                                             | —                                         | —                |
-| `userProfiles`                                           | 3     | `userId` (unique), `timezone`, `mfaSelfReported`, `deletionRequestedAt`                                                                                                                                        | —                                         | user             |
-| `identities`                                             | 4     | `userId`, `type`, `valueEncrypted`, `keyId`, `valueBlindIndex`, `valueMasked`, `verificationStatus`, `status (active/archived/deleted)`, `monitoring {enabled, frequency, nextScanAt, lastScanAt}`             | monitoring settings (bounded)             | user             |
-| `identityVerifications`                                  | 4     | `identityId`, `userId`, `tokenHash`, `expiresAt`, `attempts`, `consumedAt`                                                                                                                                     | —                                         | identity         |
-| `breaches`                                               | 5     | `sourceKey` (unique, normalized), `displayName`, `aliases[]` (bounded), `breachDate`, `isSensitive`, `dataTypes[]`, `providerRefs[] {provider, ref}`                                                           | provider refs (bounded by provider count) | —                |
-| `exposures`                                              | 5     | `userId`, `identityId`, `breachId`, `fingerprint`, `providers[]`, `severity`, `exposedDataTypes[]`, `confidence`, `detectionState`, `remediationState`, `firstSeenAt`, `lastSeenAt`, `isSensitiveSource`       | data types, providers (bounded enums)     | identity, breach |
-| `scans`                                                  | 6     | `userId`, `identityId`, `trigger (manual/scheduled)`, `state`, `stateHistory[]` (≤ 8), `providerResults[] {provider, status, errorCategory, startedAt, finishedAt, count}`, `summary {new, changed, existing}` | provider results, state history           | identity         |
-| `riskScores`                                             | 7     | `userId`, `score`, `band`, `factors[]`, `methodologyVersion`, `computedAt`, `scanId?`                                                                                                                          | factors (bounded by factor list)          | user             |
-| `remediationActions`                                     | 8     | `userId`, `exposureId`, `actionKey`, `completedAt`                                                                                                                                                             | —                                         | exposure         |
-| `monitoringSchedules`                                    | 9     | `identityId`, `userId`, `frequency`, `nextScanAt`, `status`, `lockedUntil`                                                                                                                                     | —                                         | identity         |
-| `notifications`                                          | 10    | `userId`, `dedupeKey` (unique), `channel`, `type`, `status`, `sentAt`                                                                                                                                          | —                                         | user, exposure   |
-| `notificationPreferences`                                | 10    | `userId` (unique), `channels`, `minSeverity`, `mode (immediate/digest)`, `quietHours`, `timezone`                                                                                                              | —                                         | user             |
-| `auditLogs`                                              | 3     | `userId` (nullable after deletion), `event`, `requestId`, `metadata` (IDs only), `createdAt`                                                                                                                   | —                                         | —                |
-| `providerStates`                                         | 5     | `provider` (unique), `health`, `lastSuccessAt`, `consecutiveFailures`, `cooldownUntil`                                                                                                                         | —                                         | —                |
+| Collection                                                           | Phase | Key fields                                                                                                                                                                                                     | Embedded                                  | References       |
+| -------------------------------------------------------------------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- | ---------------- |
+| Better Auth `user`, `session`, `account`, `verification` (**built**) | 3     | managed by library; ids are ObjectIds; session has no IP (D-021); codes/tokens hashed (D-019)                                                                                                                  | —                                         | —                |
+| `userProfiles` (deferred: built when timezone/deletion need it)      | M2    | `userId` (unique), `timezone`, `mfaSelfReported`, `deletionRequestedAt`                                                                                                                                        | —                                         | user             |
+| `identities`                                                         | 4     | `userId`, `type`, `valueEncrypted`, `keyId`, `valueBlindIndex`, `valueMasked`, `verificationStatus`, `status (active/archived/deleted)`, `monitoring {enabled, frequency, nextScanAt, lastScanAt}`             | monitoring settings (bounded)             | user             |
+| `identityVerifications`                                              | 4     | `identityId`, `userId`, `tokenHash`, `expiresAt`, `attempts`, `consumedAt`                                                                                                                                     | —                                         | identity         |
+| `breaches`                                                           | 5     | `sourceKey` (unique, normalized), `displayName`, `aliases[]` (bounded), `breachDate`, `isSensitive`, `dataTypes[]`, `providerRefs[] {provider, ref}`                                                           | provider refs (bounded by provider count) | —                |
+| `exposures`                                                          | 5     | `userId`, `identityId`, `breachId`, `fingerprint`, `providers[]`, `severity`, `exposedDataTypes[]`, `confidence`, `detectionState`, `remediationState`, `firstSeenAt`, `lastSeenAt`, `isSensitiveSource`       | data types, providers (bounded enums)     | identity, breach |
+| `scans`                                                              | 6     | `userId`, `identityId`, `trigger (manual/scheduled)`, `state`, `stateHistory[]` (≤ 8), `providerResults[] {provider, status, errorCategory, startedAt, finishedAt, count}`, `summary {new, changed, existing}` | provider results, state history           | identity         |
+| `riskScores`                                                         | 7     | `userId`, `score`, `band`, `factors[]`, `methodologyVersion`, `computedAt`, `scanId?`                                                                                                                          | factors (bounded by factor list)          | user             |
+| `remediationActions`                                                 | 8     | `userId`, `exposureId`, `actionKey`, `completedAt`                                                                                                                                                             | —                                         | exposure         |
+| `monitoringSchedules`                                                | 9     | `identityId`, `userId`, `frequency`, `nextScanAt`, `status`, `lockedUntil`                                                                                                                                     | —                                         | identity         |
+| `notifications`                                                      | 10    | `userId`, `dedupeKey` (unique), `channel`, `type`, `status`, `sentAt`                                                                                                                                          | —                                         | user, exposure   |
+| `notificationPreferences`                                            | 10    | `userId` (unique), `channels`, `minSeverity`, `mode (immediate/digest)`, `quietHours`, `timezone`                                                                                                              | —                                         | user             |
+| `auditLogs` (**built**, `models/AuditLog.ts`)                        | 3     | `event`, `outcome`, `userId` (nullable), `subjectHash`, `ipHash`, `requestId`, `metadata`, `createdAt`; append-only (D-022)                                                                                    | —                                         | —                |
+| `providerStates`                                                     | 5     | `provider` (unique), `health`, `lastSuccessAt`, `consecutiveFailures`, `cooldownUntil`                                                                                                                         | —                                         | —                |
+
+## Built indexes (created by `npm run db:indexes`)
+
+| Collection   | Index                                         | Reason                                      |
+| ------------ | --------------------------------------------- | ------------------------------------------- |
+| user         | `{ email: 1 }` unique                         | one account per address, enforced by the DB |
+| session      | `{ token: 1 }` unique                         | session lookup                              |
+| session      | `{ userId: 1, updatedAt: -1 }`                | Settings → Security session list            |
+| session      | `{ expiresAt: 1 }` TTL 0                      | expired sessions deleted automatically      |
+| account      | `{ userId: 1 }`                               | credential lookup                           |
+| verification | `{ identifier: 1 }`; `{ expiresAt: 1 }` TTL 0 | code/token lookup; purge on expiry          |
+| auditLogs    | `{ userId: 1, createdAt: -1 }`                | activity feed                               |
+| auditLogs    | `{ subjectHash: 1, createdAt: -1 }` partial   | correlate failed attempts for one subject   |
+| auditLogs    | `{ createdAt: 1 }` TTL 365 d                  | 12-month retention                          |
 
 ## Planned indexes (and why)
 
@@ -44,7 +58,6 @@
 | riskScores            | `{ userId: 1, computedAt: -1 }`                                                    | latest score, history                                 |
 | monitoringSchedules   | `{ status: 1, nextScanAt: 1 }`                                                     | scheduler sweep                                       |
 | notifications         | `{ dedupeKey: 1 }` unique; `{ createdAt: 1 }` TTL 90 d                             | never re-notify; retention                            |
-| auditLogs             | `{ userId: 1, createdAt: -1 }`; `{ createdAt: 1 }` TTL 365 d                       | activity feed; retention                              |
 
 ## Future exposure graph
 

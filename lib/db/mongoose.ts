@@ -17,7 +17,13 @@ mongoose.set("strictQuery", true);
 // Reject `$`-prefixed keys in query filters (operator-injection guard).
 mongoose.set("sanitizeFilter", true);
 
-export function connectToDatabase(uri: string = getEnv().MONGODB_URI): Promise<typeof mongoose> {
+/** Tests run against MONGODB_URI_TEST, never the dev database. */
+export function defaultDatabaseUri(): string {
+  const env = getEnv();
+  return env.NODE_ENV === "test" ? env.MONGODB_URI_TEST : env.MONGODB_URI;
+}
+
+export function connectToDatabase(uri: string = defaultDatabaseUri()): Promise<typeof mongoose> {
   cache.promise ??= mongoose
     .connect(uri, {
       // Indexes are created explicitly by `npm run db:indexes`, never implicitly in production.

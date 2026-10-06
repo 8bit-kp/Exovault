@@ -13,16 +13,25 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "env:init": "tsx scripts/env-init.ts",
-    "test:e2e": "next build && playwright test"
+    "test:e2e": "next build && playwright test",
+    "db:indexes": "tsx --env-file-if-exists=.env.local scripts/db-indexes.ts",
+    "db:reset": "tsx --env-file-if-exists=.env.local scripts/db-reset.ts",
+    "test:unit": "vitest run --project node --project components",
+    "test:integration": "vitest run --project integration"
   },
   "dependencies": {
+    "better-auth": "^1.7.7",
     "clsx": "^2.1.1",
+    "ioredis": "^6.0.0",
     "lucide-react": "^1.52.0",
+    "mongodb": "^7.7.0",
     "mongoose": "^9.11.0",
     "next": "16.3.8",
+    "nodemailer": "^10.0.15",
     "pino": "^10.4.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "server-only": "^0.0.1",
     "zod": "^4.6.5"
   },
   "devDependencies": {
@@ -33,6 +42,7 @@
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.7",
     "@types/node": "^20",
+    "@types/nodemailer": "^8.0.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^6.1.2",
@@ -42,6 +52,7 @@
     "eslint-config-next": "16.3.8",
     "eslint-config-prettier": "^10.1.8",
     "jsdom": "^29.1.1",
+    "mongodb-memory-server": "^11.3.0",
     "prettier": "^3.9.9",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",

@@ -1,19 +1,30 @@
-import { test as base, expect } from "@playwright/test";
+import { test as base, expect, type Browser, type BrowserContext } from "@playwright/test";
+
+/** A random documentation-range client IP, sent as X-Forwarded-For (see playwright.config TRUSTED_PROXY_COUNT). */
+export function randomClientIp(): string {
+  const octet = () => Math.floor(Math.random() * 254) + 1;
+  return `10.${octet()}.${octet()}.${octet()}`;
+}
+
+/** A second, independent browser (another device / an attacker) with its own client IP. */
+export function newDeviceContext(browser: Browser): Promise<BrowserContext> {
+  return browser.newContext({ extraHTTPHeaders: { "x-forwarded-for": randomClientIp() } });
+}
 
 export const PUBLIC_PAGES = [
   "/",
   "/auth/sign-up",
   "/auth/sign-in",
+  "/auth/verify-email",
+  "/auth/forgot-password",
+  "/auth/reset-password",
   "/design-system",
   "/design-system/app-shell",
   "/design-system/auth-shell",
 ] as const;
 
-/**
- * Routes that are linked (and therefore prefetched) but built in a later phase.
- * Remove entries as the routes land; Phase 3 should empty this list.
- */
-const NOT_YET_BUILT = [/^\/app(\/|$)/];
+/** Routes that are linked (and therefore prefetched) but built in a later phase. */
+const NOT_YET_BUILT: RegExp[] = [];
 
 /**
  * Fails any test whose page logs a console error (which includes CSP
@@ -21,6 +32,10 @@ const NOT_YET_BUILT = [/^\/app(\/|$)/];
  * CSP that silently blocks the app's own scripts would otherwise go unnoticed.
  */
 export const test = base.extend<{ consoleProblems: string[] }>({
+  // Each test is its own client as far as per-IP rate limits are concerned.
+  extraHTTPHeaders: async ({}, provide) => {
+    await provide({ "x-forwarded-for": randomClientIp() });
+  },
   consoleProblems: [
     async ({ page }, use) => {
       const problems: string[] = [];
