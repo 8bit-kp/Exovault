@@ -1,0 +1,24 @@
+# Dev services only. MongoDB is NOT here — it runs locally (docs/DECISIONS.md D-004).
+# Start: docker compose up -d
+services:
+  redis:
+    image: redis:7.4-alpine
+    # BullMQ requires noeviction; AOF so queued jobs survive restarts.
+    command: ["redis-server", "--maxmemory-policy", "noeviction", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 5
+
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports:
+      - "127.0.0.1:1025:1025" # SMTP
+      - "127.0.0.1:8025:8025" # Web UI + API (used by E2E tests)
+
+volumes:
+  redis-data:
