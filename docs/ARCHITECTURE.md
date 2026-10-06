@@ -1,6 +1,6 @@
 # Architecture
 
-> Status: **Phase 3.** Built: the UI layer ([DESIGN-SYSTEM.md](DESIGN-SYSTEM.md)), `proxy.ts` (CSP, request ID, coarse `/app` redirect), and authentication ([SECURITY.md](SECURITY.md)): Server Actions → `server/services/account` → Better Auth in-process, Redis rate limits, audit log. Each section says whether it is **built** or **designed**. Nothing marked _designed_ exists in code yet.
+> Status: **Phase 4.** Built: identities (encrypted storage, blind index, masking, ownership verification, onboarding; §6). Also built: the UI layer ([DESIGN-SYSTEM.md](DESIGN-SYSTEM.md)), `proxy.ts` (CSP, request ID, coarse `/app` redirect), and authentication ([SECURITY.md](SECURITY.md)): Server Actions → `server/services/account` → Better Auth in-process, Redis rate limits, audit log. Each section says whether it is **built** or **designed**. Nothing marked _designed_ exists in code yet.
 
 ## 1. System overview
 
@@ -70,7 +70,7 @@ Persisted states `queued → running → normalizing → matching → scoring �
 - M2: a BullMQ adapter behind the same interface.
 - Progress: SSE reads persisted state. The UI never invents steps.
 
-## 6. Privacy-preserving identifier storage (designed; spec 5.1)
+## 6. Privacy-preserving identifier storage (**built**, Phase 4; spec 5.1)
 
 | Field                      | How                                                                                                | Purpose                                              |
 | -------------------------- | -------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
@@ -78,7 +78,7 @@ Persisted states `queued → running → normalizing → matching → scoring �
 | `valueBlindIndex`          | HMAC-SHA-256(normalized value, `BLIND_INDEX_PEPPER`)                                               | uniqueness / lookup without plaintext                |
 | `valueMasked`              | precomputed `k****n@example.com`                                                                   | default display                                      |
 
-Key rotation: new writes use the active key id. A re-encryption job rewrites old rows. Reads pick the key by stored `keyId`.
+Key rotation: new writes use the active key id. `npm run keys:rotate` (`server/services/identity/key-rotation.ts`) rewrites old rows with a compare-and-set. Reads pick the key by stored `keyId`. Code: `lib/crypto/field-encryption.ts`, `lib/crypto/keyed-hash.ts`, `server/services/identity/identity-service.ts`; where plaintext may exist is listed in D-023.
 
 ## 7. Process & runtime model
 

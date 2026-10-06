@@ -22,4 +22,17 @@ export const RATE_LIMITS = {
   passwordResetPerAccount: { name: "password-reset:account", limit: 3, windowMs: HOUR, failClosed: true },
   passwordResetPerIp: { name: "password-reset:ip", limit: 3, windowMs: HOUR, failClosed: true },
   identityCreationPerUser: { name: "identity-create:user", limit: 5, windowMs: DAY, failClosed: true },
+  // Ownership codes: 5 guesses per code (stored on the code) plus this per-user ceiling across codes.
+  identityCodeAttemptsPerUser: {
+    name: "identity-code:user",
+    limit: 10,
+    windowMs: 15 * MINUTE,
+    failClosed: true,
+  },
+  identityCodeResendPerIdentity: {
+    name: "identity-resend:identity",
+    limit: 3,
+    windowMs: HOUR,
+    failClosed: true,
+  },
 } as const satisfies Record<string, RateLimitRule>;

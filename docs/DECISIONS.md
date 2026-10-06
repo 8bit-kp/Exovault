@@ -167,3 +167,44 @@ Format: **Context → Options → Decision → Consequences.** Newest last. Stat
   - An outage of the audit store loses events rather than locking users out. Error-level logs make the gap visible.
   - Anonymisation after account deletion (spec 5.2) will need a privileged path that bypasses the model hooks. It arrives with account deletion.
   - TOTP and passkeys are deferred: Phase 3's scope is sign-up/in/out, verification, sessions, rate limits and audit. The settings page says "not available yet" honestly. Adding the `twoFactor` plugin is a drop-in change.
+
+## D-023 — Identity ownership codes, and exactly where plaintext exists (2026-10-06)
+
+- **Context:** Spec Part 6 #2 requires a single-use, short-TTL, hashed-at-rest proof of control for any identifier that isn't the verified account email. Spec 5.1 says "only the scan service decrypts".
+- **Decision:**
+  - **Auto-verify:** an identity equal (after normalization) to the _verified_ account email is verified immediately (`verificationMethod: "account-email"`).
+  - **Everything else gets a code:**
+    - 6 digits, generated with `crypto.randomInt`.
+    - 15-minute expiry and 5 attempts per code.
+    - Stored as a keyed HMAC bound to the identity ID (`identity-verification-code` purpose) and compared in constant time.
+    - At most one live code per identity: a resend replaces it in one atomic upsert.
+    - Each guess atomically spends an attempt (`$inc` with a conditional filter).
+    - The code is consumed by a single-winner delete, so a double submit verifies once.
+    - Limits: 10 guesses per 15 min per user, and 3 resends per hour per identity.
+  - **Where plaintext exists.** It appears in memory only, at four points, all server-side:
+    1. Creation (the user just typed it).
+    2. A code resend: the email needs an address. This is a deliberate exception to "scan service only".
+    3. An explicit, audited "Reveal" (`IDENTITY_REVEALED`). It's shown for 30 s, then re-masked.
+    4. The scan service (Phase 6).
+
+    It never appears in logs, URLs, audit metadata (identity IDs only), Redis keys or email subjects.
+
+  - **Normalization:** NFKC, trim, lower-case. Gmail-style dot or `+tag` folding is deliberately not done, because each literal address is a distinct thing to prove ownership of.
+  - **The same address under two users:** this is allowed, but each user must prove ownership independently. The blind index is unique per user only.
+- **Consequences:** The verification email names no account, and it says plainly that ignoring it means nothing is checked.
+
+## D-024 — Active-identity limit via a per-user counter document (2026-10-06)
+
+- **Context:** "Count active identities, then insert" races without transactions (D-004). A test fires 4 concurrent adds.
+- **Decision:**
+  - `identityQuotas` has one document per user. A slot is claimed with a conditional `findOneAndUpdate({userId, active: {$lt: limit}}, {$inc: 1}, {upsert: true})`. At the limit, the upsert collides on the unique `userId` and the claim is refused.
+  - The slot is released if the insert fails, and when an identity is removed.
+  - Drift (e.g. a crash between claim and insert) self-heals: on a refused claim, the counter is recomputed from the real count once and the claim retried.
+  - Duplicate addresses are blocked by a partial unique index on `{userId, type, valueBlindIndex}` where the status is active.
+- **Consequences:** The limit holds under concurrency (tested: exactly 1 of 4 parallel adds succeeds). `MAX_ACTIVE_IDENTITIES_PER_USER` stays configurable; E2E uses 2.
+
+## D-025 — Cross-user resources are a "soft 404" inside the app (2026-10-06)
+
+- **Context:** App pages stream: the layout flushes before the page body, so `notFound()` renders the not-found UI with HTTP **200** plus `noindex` (documented Next 16 behaviour). A real 404 status would need the ownership check in `proxy.ts`, which D-003 rules out (no DB in the proxy).
+- **Decision:** Accept the soft 404. Another user's identity renders exactly the same in-app "Not found" page as a non-existent ID. It shows no data and gives no different signal. E2E asserts this, including the `noindex` tag. Server Actions and services return `not_found` for both cases.
+- **Consequences:** Status codes don't reveal existence either, since both cases return the same 200. Public, non-streamed routes still return a true 404.

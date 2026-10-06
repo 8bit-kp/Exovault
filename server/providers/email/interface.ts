@@ -11,7 +11,13 @@ export interface EmailMessage {
   kind: EmailKind;
 }
 
-export const EMAIL_KINDS = ["verify-email", "reset-password", "account-exists", "password-changed"] as const;
+export const EMAIL_KINDS = [
+  "verify-email",
+  "reset-password",
+  "account-exists",
+  "password-changed",
+  "identity-verification",
+] as const;
 export type EmailKind = (typeof EMAIL_KINDS)[number];
 
 export interface EmailProvider {

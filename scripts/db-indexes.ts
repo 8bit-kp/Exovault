@@ -7,14 +7,21 @@ import mongoose from "mongoose";
 import { getEnv } from "@/config/env";
 import { ensureAuthIndexes } from "@/lib/db/auth-indexes";
 import { AuditLog } from "@/models/AuditLog";
+import { Identity } from "@/models/Identity";
+import { IdentityQuota } from "@/models/IdentityQuota";
+import { IdentityVerification } from "@/models/IdentityVerification";
 
 async function main() {
   const uri = getEnv().MONGODB_URI;
   await mongoose.connect(uri, { autoIndex: false, serverSelectionTimeoutMS: 5_000 });
   const client = new MongoClient(uri);
   try {
-    const synced = await AuditLog.syncIndexes();
-    console.log(`auditLogs: synced (dropped: ${synced.length ? synced.join(", ") : "none"})`);
+    for (const model of [AuditLog, Identity, IdentityVerification, IdentityQuota]) {
+      const dropped = await model.syncIndexes();
+      console.log(
+        `${model.collection.name}: synced (dropped: ${dropped.length ? dropped.join(", ") : "none"})`,
+      );
+    }
     const created = await ensureAuthIndexes(client.db());
     console.log(`better-auth collections: ${created.join(", ")}`);
   } finally {

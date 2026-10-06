@@ -7,6 +7,9 @@ import { closeRedis, getRedis } from "@/lib/redis/client";
 import { setRateLimitStore } from "@/lib/rate-limit";
 import { memoryEmailProvider } from "@/server/providers/email/memory";
 import { setEmailProvider } from "@/server/providers/email";
+import { Identity } from "@/models/Identity";
+import { IdentityQuota } from "@/models/IdentityQuota";
+import { IdentityVerification } from "@/models/IdentityVerification";
 import type { RequestContext } from "@/server/services/account/auth-service";
 
 export const APP_ORIGIN = "http://127.0.0.1:3100";
@@ -60,6 +63,11 @@ export function setupAuthHarness() {
     await connectToDatabase();
     // Production indexes (npm run db:indexes) must coexist with the auth library's own writes.
     await ensureAuthIndexes(getAuthDb());
+    await Promise.all([
+      Identity.syncIndexes(),
+      IdentityVerification.syncIndexes(),
+      IdentityQuota.syncIndexes(),
+    ]);
     getAuth();
   });
 
@@ -67,7 +75,16 @@ export function setupAuthHarness() {
     outbox.clear();
     await getRedis().flushdb();
     const db = getAuthDb();
-    for (const name of ["user", "session", "account", "verification", "auditLogs"]) {
+    for (const name of [
+      "user",
+      "session",
+      "account",
+      "verification",
+      "auditLogs",
+      "identities",
+      "identityVerifications",
+      "identityQuotas",
+    ]) {
       await db.collection(name).deleteMany({});
     }
   });
@@ -77,4 +94,12 @@ export function setupAuthHarness() {
     await disconnectFromDatabase();
     await closeRedis();
   });
+}
+
+/** Latest identity-ownership code emailed to `to`. */
+export function latestIdentityCode(to: string): string {
+  const message = [...outbox.outbox].reverse().find((m) => m.to === to && m.kind === "identity-verification");
+  const code = message?.text.match(/\b(\d{6})\b/)?.[1];
+  if (!code) throw new Error("no identity verification code sent");
+  return code;
 }

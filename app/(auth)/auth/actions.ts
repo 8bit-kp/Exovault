@@ -127,7 +127,8 @@ export async function verifyEmailAction(_prev: FormState, formData: FormData): P
     });
   }
   await clearPendingVerification();
-  redirect("/app/dashboard");
+  // First sign-in after sign-up: continue into onboarding (spec 13.2).
+  redirect("/onboarding");
 }
 
 export async function resendCodeAction(): Promise<FormState> {

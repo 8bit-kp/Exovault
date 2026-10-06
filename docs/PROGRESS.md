@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: 2026-10-06 (end of Phase 3)_
+_Last updated: 2026-10-06 (end of Phase 4)_
 
 ## Phase 0: Repository audit (done)
 
@@ -85,6 +85,25 @@ Built and verified (see `docs/SECURITY.md`, decisions D-018 to D-022):
 - Landing-page copy still mentions controls built in later phases (identifier encryption, export and delete). Re-verify in Phase 13.
 - Local E2E is load-sensitive on a busy machine: the auth spec runs serially with generous timeouts, and local runs use 4 workers.
 
+## Phase 4: Identity (done)
+
+Built and verified (decisions D-023 to D-025):
+
+- [x] `Identity`, `IdentityVerification` and `IdentityQuota` models (multi-identity and multi-type schema; email only in the product)
+- [x] AES-256-GCM field encryption with versioned keyring and AAD bound to the record; `npm run keys:rotate` (compare-and-set re-encryption)
+- [x] Keyed-HMAC blind index over the normalized value (NFKC, trim, lower-case); precomputed mask
+- [x] Ownership verification: account email auto-verified (only if the account is verified); other addresses get a 6-digit code (keyed HMAC, 15 min, 5 attempts, single-winner consume)
+- [x] Atomic active-identity limit (configurable, default 1), identity-creation and code rate limits, audited reveal and removal
+- [x] Onboarding (`/onboarding`, `/onboarding/identity`, `/onboarding/scan` as an honest placeholder), `/app/identities` list and add, `/app/identities/[id]` (reveal, verify, resend, remove with confirmation), dashboard reflects real identity state, in-app not-found
+- [x] Tests: unit (crypto, tamper, AAD, rotation, normalization); integration (ciphertext at rest, codes hashed and single-use, attempts, expiry, resend, concurrency limit, double submit, AAD swap, rotation); security IDOR matrix; E2E (onboarding with account email, second address via Mailpit code, limit, reveal/hide, remove dialog, cross-user URL reveals nothing)
+
+**Known gaps / carried forward:**
+
+- `/onboarding/results` and real scanning: Phases 5–6. `/onboarding/scan` says scanning isn't available yet.
+- Soft 404 for cross-user URLs (D-025).
+- `scripts/seed.ts` (spec 4.3) needs exposures, so it lands in Phase 5.
+- Landing-page copy: encryption and masking claims are now true. Export and delete are still pending (re-verify in Phase 13).
+
 ## In progress
 
 None.
@@ -93,6 +112,6 @@ None.
 
 - **HIBP API key** (paid). Needed only to run the live provider. Phase 5 builds and tests the adapter against fixtures without it (D-012).
 
-## Next: Phase 4, identity
+## Next: Phase 5, exposure engine
 
-Add an email identity with ownership verification (auto-verified when it matches the verified account email), AES-256-GCM field encryption with key versioning, the HMAC blind index (`identity-blind-index` keyed-hash purpose already reserved), masking, the identity limit, identity-creation rate limit, onboarding routes, and an IDOR test matrix.
+Check HIBP's current terms, pricing and rate limits (D-012) and write them up in PROVIDERS.md. Then build the mock provider and the HIBP adapter (contract-tested against recorded fixtures), the `Breach` catalog, normalization, fingerprinting and dedupe, matching, the severity classifier, `Exposure` storage with idempotent upserts, `ProviderState`, `scripts/seed.ts`, and comprehensive tests.

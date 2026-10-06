@@ -17,7 +17,8 @@
     "db:indexes": "tsx --env-file-if-exists=.env.local scripts/db-indexes.ts",
     "db:reset": "tsx --env-file-if-exists=.env.local scripts/db-reset.ts",
     "test:unit": "vitest run --project node --project components",
-    "test:integration": "vitest run --project integration"
+    "test:integration": "vitest run --project integration",
+    "keys:rotate": "tsx --env-file-if-exists=.env.local scripts/rotate-identity-keys.ts"
   },
   "dependencies": {
     "better-auth": "^1.7.7",

@@ -73,7 +73,7 @@ describe("IdentityCard", () => {
       />,
     );
     expect(screen.getByText(/awaiting verification/i)).toBeInTheDocument();
-    expect(screen.getByText(/open it to prove you control it/i)).toBeInTheDocument();
+    expect(screen.getByText(/enter it to prove you control it/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /resend/i })).toBeInTheDocument();
   });
 });

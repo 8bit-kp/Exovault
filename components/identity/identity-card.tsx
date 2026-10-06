@@ -83,8 +83,8 @@ export function IdentityCard({ identity, action, className }: IdentityCardProps)
         </dl>
       ) : (
         <p className="border-t border-line px-5 py-3 text-sm text-fg-muted">
-          We sent a verification link to this address. Open it to prove you control it. We can&apos;t scan an
-          identity until it&apos;s verified. Links expire after a short time; you can request a new one.
+          We emailed a 6-digit code to this address. Enter it to prove you control it. We can&apos;t check an
+          identity until it&apos;s verified. Codes expire after 15 minutes; you can request a new one.
         </p>
       )}
 

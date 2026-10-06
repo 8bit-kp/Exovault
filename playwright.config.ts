@@ -20,6 +20,8 @@ export const E2E_ENV = {
   // Simulates one trusted reverse proxy: each test supplies its own client IP via
   // X-Forwarded-For, so parallel tests don't share per-IP rate-limit budgets (D-021).
   TRUSTED_PROXY_COUNT: "1",
+  // Two, so E2E can exercise verifying a second address and hitting the limit.
+  MAX_ACTIVE_IDENTITIES_PER_USER: "2",
 };
 
 /**

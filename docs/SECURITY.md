@@ -1,6 +1,6 @@
 # Security
 
-> Status: describes controls that exist in code as of **Phase 3**. Planned controls are listed in [THREAT-MODEL.md](THREAT-MODEL.md) with their phase. Not a substitute for an independent review.
+> Status: describes controls that exist in code as of **Phase 4**. Planned controls are listed in [THREAT-MODEL.md](THREAT-MODEL.md) with their phase. Not a substitute for an independent review.
 
 ## Authentication (Better Auth 1.7.7, D-002, D-018, D-019)
 
@@ -16,6 +16,17 @@
 | Protected routes   | `proxy.ts` redirects when no cookie (convenience); every `/app` layout, page and action calls `requireSession()` (D-003)                                         | E2E "forged cookie rejected by the server"              |
 | Open redirects     | `returnTo` allow-listed to `/app/*` and `/onboarding/*`, root-relative only, control characters rejected                                                         | `redirect-and-origin.test.ts`, E2E                      |
 | CSRF               | Server Actions: Next.js Origin/Host check. No Better Auth HTTP surface. `lib/security/origin.ts` ready for future route handlers                                 | `redirect-and-origin.test.ts`; E2E 404 on `/api/auth/*` |
+
+## Identifier protection (spec 5.1, D-023, D-024)
+
+| Control                    | Implementation                                                                                                                                                   | Verified by                                        |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| Encryption at rest         | AES-256-GCM, random IV, AAD `identity:<_id>`, versioned keyring, `npm run keys:rotate`                                                                           | `field-encryption.test.ts`, `key-rotation.test.ts` |
+| No plaintext in the DB     | ciphertext + keyed HMAC blind index + mask only                                                                                                                  | `identity.test.ts` "what Compass shows"            |
+| Ownership before any check | account email auto-verified only if the account is verified; any other address needs a 6-digit emailed code (keyed HMAC at rest, 15 min, 5 attempts, single use) | `identity.test.ts`, E2E via Mailpit                |
+| Abuse limits               | 5 identity adds / day / user; 10 code guesses / 15 min / user; 3 resends / hour / identity; active-identity cap enforced atomically                              | `identity.test.ts` (incl. concurrent adds)         |
+| Authorization              | every query scoped by `userId`; others' identities are indistinguishable from missing ones (D-025)                                                               | `identity-idor.test.ts`, E2E                       |
+| Reveal                     | explicit button, audited (`IDENTITY_REVEALED`), auto-hides after 30 s                                                                                            | `identity.test.ts`, E2E                            |
 
 ## Rate limits (spec 12.3, D-020)
 
@@ -38,10 +49,12 @@ Per-request nonce CSP with no `'unsafe-inline'` in production, `frame-ancestors 
 ## Logging and audit
 
 - pino with central key redaction (`lib/logging/logger.ts`). Third-party log text passes through `scrubMessage` (emails and tokens removed).
-- Append-only `auditLogs` with hashed subject and IP (D-022). Events emitted today: `USER_CREATED`, `EMAIL_VERIFIED`, `LOGIN_SUCCESS`, `LOGIN_FAILED`, `LOGOUT`, `PASSWORD_RESET_REQUESTED`, `PASSWORD_RESET_COMPLETED`, `SESSIONS_REVOKED`, `RATE_LIMITED`.
+- Append-only `auditLogs` with hashed subject and IP (D-022). Events emitted today: `USER_CREATED`, `EMAIL_VERIFIED`, `LOGIN_SUCCESS`, `LOGIN_FAILED`, `LOGOUT`, `PASSWORD_RESET_REQUESTED`, `PASSWORD_RESET_COMPLETED`, `SESSIONS_REVOKED`, `RATE_LIMITED`, `IDENTITY_ADDED`, `IDENTITY_VERIFICATION_SENT`, `IDENTITY_VERIFIED`, `IDENTITY_REVEALED`, `IDENTITY_REMOVED` (identity IDs only, never values).
 
 ## Known gaps
 
 - No MFA yet (TOTP/passkeys planned; D-022).
 - Session tokens are stored in plaintext in the `session` collection (library behaviour). Anyone with database read access could hijack sessions. Mitigations: an authenticated, least-privilege DB user in deployed environments, and the 7-day expiry.
 - Per-IP limits are spoofable without a trusted proxy (D-021).
+- Cross-user resource URLs in the app return a soft 404 (status 200, `noindex`; D-025).
+- The encryption keyring lives in environment variables; a KMS-backed envelope (data keys wrapped by a KMS key) is the production upgrade path.

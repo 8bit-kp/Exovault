@@ -88,3 +88,20 @@ export function passwordChangedMessage(to: string, resetUrl: string): EmailMessa
     ),
   };
 }
+
+/**
+ * Ownership check for a monitored identifier (spec Part 6 #2). Doesn't reveal
+ * which account asked, and says plainly what happens if ignored.
+ */
+export function identityVerificationMessage(to: string, code: string): EmailMessage {
+  return {
+    kind: "identity-verification",
+    to,
+    subject: `Confirm ${brand.name} can check this address`,
+    ...layout([
+      `Someone asked ${brand.name} to check this email address against known data breaches. Before we check anything, the owner of the address has to confirm.`,
+      `If that was you, enter this code in ${brand.name}: ${code}`,
+      "It expires in 15 minutes and works once. If it wasn't you, ignore this email: nothing will be checked and the request expires on its own.",
+    ]),
+  };
+}

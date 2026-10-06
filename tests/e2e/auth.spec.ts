@@ -1,46 +1,14 @@
-import AxeBuilder from "@axe-core/playwright";
-import type { Page } from "@playwright/test";
 import { expect, newDeviceContext, test } from "./fixtures";
-import { codeFrom, uniqueEmail, waitForEmail } from "./mailpit";
-
-const PASSWORD = "a long and memorable passphrase";
+import { AFTER_SUBMIT, expectAccessible, PASSWORD, signUpToDashboard } from "./helpers";
+import { uniqueEmail, waitForEmail } from "./mailpit";
 
 // Password hashing makes these flows CPU-heavy: run this file's tests in order on one worker.
 test.describe.configure({ mode: "default", timeout: 120_000 });
 
-/** Navigation after a Server Action that hashes a password; generous for loaded CI/dev machines. */
-const AFTER_SUBMIT = { timeout: 30_000 };
-
-async function expectAccessible(page: Page) {
-  const results = await new AxeBuilder({ page })
-    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
-    .analyze();
-  expect(
-    results.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(" | ")}`),
-  ).toEqual([]);
-}
-
-async function signUpAndVerify(page: Page, email: string) {
-  await page.goto("/auth/sign-up");
-  await page.getByLabel("Email address").fill(email);
-  await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
-  await page.getByRole("button", { name: "Create account" }).click();
-
-  await expect(page).toHaveURL(/\/auth\/verify-email$/, AFTER_SUBMIT);
-  // The address is masked on screen and never appears in the URL.
-  await expect(page.getByText(/e\*\*\*\*/)).toBeVisible();
-  expect(page.url()).not.toContain("example.test");
-
-  const code = codeFrom(await waitForEmail(email, "verification code"));
-  await page.getByLabel("Verification code").fill(code);
-  await page.getByRole("button", { name: "Verify email" }).click();
-  await expect(page).toHaveURL(/\/app\/dashboard$/, AFTER_SUBMIT);
-}
-
 test.describe("account journey", () => {
   test("sign up → verify with emailed code → dashboard → sign out → sign in", async ({ page, context }) => {
     const email = uniqueEmail("journey");
-    await signUpAndVerify(page, email);
+    await signUpToDashboard(page, email);
 
     await expect(page.getByRole("heading", { level: 1, name: "Dashboard" })).toBeVisible();
     // Honest M1 state.
@@ -73,7 +41,7 @@ test.describe("account journey", () => {
     context,
     browser,
   }) => {
-    await signUpAndVerify(page, uniqueEmail("revoke"));
+    await signUpToDashboard(page, uniqueEmail("revoke"));
     const cookies = await context.cookies();
 
     await page.getByRole("button", { name: "Sign out" }).first().click();
@@ -98,7 +66,7 @@ test.describe("account journey", () => {
 
   test("signing up with an existing address looks the same as a new sign-up", async ({ page, browser }) => {
     const email = uniqueEmail("dupe");
-    await signUpAndVerify(page, email);
+    await signUpToDashboard(page, email);
 
     const other = await newDeviceContext(browser);
     const otherPage = await other.newPage();
@@ -117,7 +85,7 @@ test.describe("account journey", () => {
     browser,
   }) => {
     const email = uniqueEmail("reset");
-    await signUpAndVerify(page, email);
+    await signUpToDashboard(page, email);
 
     const other = await newDeviceContext(browser);
     const otherPage = await other.newPage();

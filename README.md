@@ -2,7 +2,7 @@
 
 **A privacy-first exposure intelligence platform for individuals.** Exovault checks whether your _verified_ identifiers appear in legitimate breach and credential-exposure sources, and tells you what to do about it.
 
-> **Status: early development (Phase 3 of 13: authentication).** Accounts work end to end: sign-up with an emailed one-time code, sign-in/out, password reset, session management, rate limits and an audit log. Identities, scanning and exposures are not built yet. Browse the component reference at `/design-system` (fictional data). See [`docs/PROGRESS.md`](docs/PROGRESS.md).
+> **Status: early development (Phase 4 of 13: identity).** Accounts work end to end, and users can add an email identity, prove they own it, and see it stored encrypted (AES-256-GCM, keyed blind index, masked display). Scanning and exposures are not built yet. Browse the component reference at `/design-system` (fictional data). See [`docs/PROGRESS.md`](docs/PROGRESS.md).
 
 ## What it is not
 
@@ -18,6 +18,7 @@ npm run env:init          # creates .env.local with freshly generated secrets
 docker compose up -d      # Redis (noeviction) + Mailpit (http://localhost:8025)
 #   …or natively: brew install redis mailpit && mailpit
 npm run db:indexes        # create MongoDB indexes explicitly
+# npm run keys:rotate     # after changing IDENTIFIER_ENCRYPTION_ACTIVE_KEY_ID
 npm run dev
 ```
 
