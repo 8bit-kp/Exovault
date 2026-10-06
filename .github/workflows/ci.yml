@@ -32,8 +32,16 @@ jobs:
       - run: npm run format:check
       - run: npm run typecheck
       - run: npm test
-      # Integration, security, and E2E suites are added in later phases.
+      # Integration and security suites are added in later phases.
       - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report
+          retention-days: 7
       # Production dependencies only; dev-tool advisories are tracked in docs/DECISIONS.md (D-008).
       - run: npm audit --omit=dev --audit-level=high
 

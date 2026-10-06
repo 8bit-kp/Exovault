@@ -1,26 +1,240 @@
 @import "tailwindcss";
 
+/*
+ * Exovault design tokens. Everything visual is defined here once, as CSS
+ * variables, and exposed to Tailwind through @theme. Components use the
+ * semantic utilities (bg-surface-1, text-fg-muted, text-sev-critical, ...),
+ * never raw palette values. See docs/DESIGN-SYSTEM.md.
+ *
+ * Dark-first (D-013). Contrast targets: body text >= 7:1, muted >= 4.5:1 on
+ * every surface level, severity foregrounds >= 4.5:1 on their tinted fills.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: dark;
+
+  /* Neutrals: a cool near-black charcoal ramp. */
+  --ev-bg: oklch(0.155 0.006 255);
+  --ev-surface-1: oklch(0.185 0.007 255);
+  --ev-surface-2: oklch(0.215 0.008 255);
+  --ev-surface-3: oklch(0.255 0.009 255);
+  --ev-line: oklch(0.29 0.009 255);
+  --ev-line-strong: oklch(0.4 0.01 255);
+  --ev-fg: oklch(0.95 0.004 255);
+  --ev-fg-muted: oklch(0.77 0.008 255);
+  --ev-fg-subtle: oklch(0.67 0.01 255);
+
+  /* One restrained accent: a desaturated "instrument" cyan. */
+  --ev-accent: oklch(0.83 0.1 200);
+  --ev-accent-strong: oklch(0.9 0.08 200);
+  --ev-accent-fg: oklch(0.18 0.02 220);
+  --ev-accent-tint: oklch(0.83 0.1 200 / 0.12);
+  --ev-focus: oklch(0.88 0.12 200);
+
+  /* Severity: hue + icon + label + pip count. Never colour alone. */
+  --ev-sev-critical: oklch(0.7 0.19 22);
+  --ev-sev-high: oklch(0.77 0.15 55);
+  --ev-sev-medium: oklch(0.86 0.13 92);
+  --ev-sev-low: oklch(0.79 0.09 240);
+  --ev-sev-info: oklch(0.77 0.015 255);
+
+  /* Status (non-severity): outcomes of scans, monitoring, remediation. */
+  --ev-ok: oklch(0.8 0.13 158);
+  --ev-warn: oklch(0.84 0.13 85);
+  --ev-danger: oklch(0.7 0.19 22);
+  --ev-neutral: oklch(0.77 0.015 255);
+
+  --ev-shadow-raised: 0 1px 0 0 oklch(1 0 0 / 0.04) inset, 0 1px 2px 0 oklch(0 0 0 / 0.4);
+  --ev-shadow-overlay: 0 1px 0 0 oklch(1 0 0 / 0.05) inset, 0 16px 48px -12px oklch(0 0 0 / 0.7);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, "SFMono-Regular", monospace;
+
+  --color-*: initial;
+  --color-transparent: transparent;
+  --color-current: currentColor;
+  --color-black: oklch(0 0 0);
+  --color-white: oklch(1 0 0);
+
+  --color-bg: var(--ev-bg);
+  --color-surface-1: var(--ev-surface-1);
+  --color-surface-2: var(--ev-surface-2);
+  --color-surface-3: var(--ev-surface-3);
+  --color-line: var(--ev-line);
+  --color-line-strong: var(--ev-line-strong);
+  --color-fg: var(--ev-fg);
+  --color-fg-muted: var(--ev-fg-muted);
+  --color-fg-subtle: var(--ev-fg-subtle);
+
+  --color-accent: var(--ev-accent);
+  --color-accent-strong: var(--ev-accent-strong);
+  --color-accent-fg: var(--ev-accent-fg);
+  --color-accent-tint: var(--ev-accent-tint);
+  --color-focus: var(--ev-focus);
+
+  --color-sev-critical: var(--ev-sev-critical);
+  --color-sev-high: var(--ev-sev-high);
+  --color-sev-medium: var(--ev-sev-medium);
+  --color-sev-low: var(--ev-sev-low);
+  --color-sev-info: var(--ev-sev-info);
+
+  --color-ok: var(--ev-ok);
+  --color-warn: var(--ev-warn);
+  --color-danger: var(--ev-danger);
+  --color-neutral: var(--ev-neutral);
+
+  /* Type scale (rem; 1rem = 16px). Tight at display sizes, open at body. */
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1.125rem;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.375rem;
+  --text-base: 0.9375rem;
+  --text-base--line-height: 1.5rem;
+  --text-lg: 1.0625rem;
+  --text-lg--line-height: 1.625rem;
+  --text-xl: 1.25rem;
+  --text-xl--line-height: 1.75rem;
+  --text-2xl: 1.5rem;
+  --text-2xl--line-height: 2rem;
+  --text-3xl: 1.875rem;
+  --text-3xl--line-height: 2.25rem;
+  --text-4xl: 2.5rem;
+  --text-4xl--line-height: 2.875rem;
+  --text-5xl: 3.25rem;
+  --text-5xl--line-height: 3.5rem;
+  --text-6xl: 4rem;
+  --text-6xl--line-height: 4.125rem;
+
+  /* Radii stay small: instruments, not bubbles. */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+
+  --shadow-raised: var(--ev-shadow-raised);
+  --shadow-overlay: var(--ev-shadow-overlay);
+
+  --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.6, 0, 0.3, 1);
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 420ms;
+
+  --breakpoint-xs: 26rem;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  html {
+    background: var(--ev-bg);
+    color: var(--ev-fg);
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background: var(--ev-bg);
+    color: var(--ev-fg);
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: var(--text-base--line-height);
+    font-feature-settings: "ss01", "ss02";
+  }
+
+  ::selection {
+    background: var(--ev-accent-tint);
+    color: var(--ev-fg);
+  }
+
+  /* One focus style everywhere: visible, high-contrast, offset from the control. */
+  :focus-visible {
+    outline: 2px solid var(--ev-focus);
+    outline-offset: 2px;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    text-wrap: balance;
+    letter-spacing: -0.015em;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /* Tabular figures for any data a user compares across rows. */
+  .tabular,
+  time,
+  data {
+    font-variant-numeric: tabular-nums;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  /* Eyebrow label: small, mono, tracked caps. Used for section and field labels. */
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    line-height: var(--text-2xs--line-height);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ev-fg-subtle);
+  }
+
+  /* Instrument grid: a faint measurement grid used behind hero and score areas. */
+  .bg-instrument-grid {
+    background-image:
+      linear-gradient(to right, oklch(1 0 0 / 0.035) 1px, transparent 1px),
+      linear-gradient(to bottom, oklch(1 0 0 / 0.035) 1px, transparent 1px);
+    background-size: 32px 32px;
+    background-position: -1px -1px;
+  }
+
+  /* Diagonal hatching: the "pattern" channel for partial / incomplete states. */
+  .bg-hatch {
+    background-image: repeating-linear-gradient(-45deg, oklch(1 0 0 / 0.06) 0 1px, transparent 1px 6px);
+  }
+}
+
+@keyframes ev-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes ev-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@utility animate-sweep {
+  animation: ev-sweep 1.6s var(--ease-in-out) infinite;
+}
+
+@utility animate-signal {
+  animation: ev-pulse 2.4s var(--ease-in-out) infinite;
+}
+
+/* Motion only aids understanding; it is removed entirely on request. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

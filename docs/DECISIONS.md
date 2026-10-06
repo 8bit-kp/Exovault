@@ -75,3 +75,34 @@ Format: **Context → Options → Decision → Consequences.** Newest last. Stat
 
 - **Context:** HIBP's breached-account API needs a paid API key. Spec 7.2 requires checking current terms, pricing, and rate limits before implementing.
 - **Decision:** Phase 5 starts by checking these and writing them up in `docs/PROVIDERS.md`. The HIBP adapter is built and contract-tested against recorded fixtures, without a key. **Running it live needs a key from the project owner** (spec 1.4 stop condition (a)).
+
+## D-013 — Visual identity: dark-only, IBM Plex, one cyan accent (2026-10-06)
+
+- **Context:** Spec 13.10 asks for a dark-first SOC/instrument feel with a distinctive type pairing (not Inter) and a mono face for technical data. None of the suggested design skills are installed (Phase 0).
+- **Options:** (a) dark + light themes now; (b) dark only, tokens structured so light can be added; type: Geist (scaffold default), Inter, IBM Plex, Space Grotesk.
+- **Decision:** (b) dark only, with `color-scheme: dark`. **IBM Plex Sans + IBM Plex Mono**, self-hosted through `next/font` (no third-party font requests, and `font-src 'self'` holds). One accent: a desaturated cyan (`oklch(0.83 0.1 200)`). Colours are OKLCH tokens in `app/globals.css`, and Tailwind's default palette is removed (`--color-*: initial`), so components can only use semantic tokens. Radii max out at 8px.
+- **Consequences:** A user who prefers light mode gets dark. Adding light later means redefining the `--ev-*` variables under a media query; no component changes. Contrast is enforced by axe in E2E (the build fails on a violation).
+
+## D-014 — CSP details: dev-only style relaxation, static headers in next.config (2026-10-06)
+
+- **Context:** Implementing D-007 showed Turbopack's dev CSS hot reload injects `<style>` tags with no nonce. Browsers ignore `'unsafe-inline'` whenever a nonce is present in the same directive.
+- **Decision:** Production `style-src` is `'self' 'nonce-…'`. Development `style-src` is `'self' 'unsafe-inline'` (no nonce), alongside dev-only `'unsafe-eval'` and `ws:`. The policy is built by a pure, unit-tested function (`lib/security/headers.ts`), and the proxy only applies it. Headers that don't vary per request (nosniff, X-Frame-Options, Referrer-Policy, Permissions-Policy, COOP/CORP, HSTS in prod) live in `next.config.ts` `headers()`, so static assets get them too. The root layout calls `connection()` so every page renders per request and receives a nonce.
+- **Consequences:** No SSR'd `style=""` attributes anywhere. Dynamic geometry (score marker, scales) uses SVG attributes. A Playwright fixture fails any test on a console CSP violation against `next start`, so a regression can't slip through.
+
+## D-015 — Minimal UI dependencies: native elements over Radix for now (2026-10-06)
+
+- **Context:** Spec 4.1 suggests Radix/shadcn-style primitives and "a motion library only where it aids understanding".
+- **Decision:** Phase 2 needs a modal drawer, checkboxes and form fields only. We use native `<dialog>` (`showModal()` gives focus containment, Escape, an inert background and focus restoration), native checkboxes, and CSS transitions. The only new runtime dependencies are `lucide-react` (icons) and `clsx`. No motion library yet; all motion is CSS and disabled under `prefers-reduced-motion`.
+- **Consequences:** Smaller bundle and fewer CSP edge cases. If a later phase needs menus, popovers or comboboxes with complex keyboard models, add the specific Radix package then and record it here.
+
+## D-016 — Public `/design-system` reference page (2026-10-06)
+
+- **Context:** We need a place to review every component and state, run axe and contrast checks against real rendering, and take portfolio screenshots before the feature pages exist.
+- **Options:** Storybook; a dev-only route; a public route.
+- **Decision:** A public route group `app/(dev)/design-system` (plus app-shell and auth-shell previews) rendering real components with fictional data. Every data block carries the "Demo data" label, and the pages are `noindex`. It's public so the production-build E2E suite can test it.
+- **Consequences:** No Storybook toolchain. The page contains no user data and no server calls. It can be removed or put behind a flag before a real launch.
+
+## D-017 — Temporary auth stubs (2026-10-06)
+
+- **Context:** The landing CTA points to `/auth/sign-up`, which Phase 3 builds. A 404 there breaks the primary journey and shows up as console errors from link prefetching.
+- **Decision:** `/auth/sign-up` and `/auth/sign-in` render the real `AuthShell` with an honest "Accounts aren't open yet" notice and no inputs. Phase 3 replaces both. `/app/*` links in the shell preview still 404; the E2E fixture lists them in `NOT_YET_BUILT`, and Phase 3 should empty that list.

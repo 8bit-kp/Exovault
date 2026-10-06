@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: 2026-10-06 (end of Phase 1)_
+_Last updated: 2026-10-06 (end of Phase 2)_
 
 ## Phase 0: Repository audit (done)
 
@@ -37,6 +37,26 @@ Built and verified:
 
 Folders from spec 14.2 are created when their first file lands. We don't commit empty placeholder folders.
 
+## Phase 2: Design system (done)
+
+Built and verified (see `docs/DESIGN-SYSTEM.md`, decisions D-013 to D-017):
+
+- [x] Tokens as OKLCH CSS variables + Tailwind 4 `@theme`, with the default palette removed; IBM Plex Sans/Mono via `next/font`; motion tokens, all reduced-motion safe
+- [x] Layouts: marketing (header/footer), `AuthShell`, `AppShell` (sidebar + native `<dialog>` mobile drawer), `PageHeader`, skip link
+- [x] Spec 13.10 components: `SecurityScore`, `RiskBadge`, `SeverityBadge`, `ExposureCard`, `ExposureList`, `ExposureTimeline`, `MonitoringStatus`, `ScanProgress`, `IdentityCard`, `RecommendationCard`, `RemediationChecklist`, `EmptyState`, `ErrorState`, `LoadingState`, `SecurityEvent` (+ `AccessState`, `SeverityBreakdown`, `Callout`, `Field`)
+- [x] Landing page (spec 13.4) replaces the create-next-app boilerplate; global 404 and error boundary
+- [x] `proxy.ts`: per-request nonce CSP. `next.config.ts`: static security headers. Policy built by a tested pure function
+- [x] `lib/domain/risk.ts` (score bands), `lib/domain/monitoring.ts`, deterministic UTC formatting
+- [x] `/design-system` reference page plus shell previews (fictional data, labelled)
+- [x] Tests: Vitest split into `node` and `components` (jsdom + axe) projects; Playwright E2E against `next start` (CSP/nonce/headers, axe incl. contrast on every public page at desktop and mobile, keyboard skip link, drawer focus restore, no horizontal scroll, landing claims); CI runs E2E
+
+**Known gaps / carried forward:**
+
+- `/auth/sign-in` and `/auth/sign-up` are honest "not open yet" stubs (D-017). Phase 3 replaces them and the `/app/*` routes, and empties `NOT_YET_BUILT` in `tests/e2e/fixtures.ts`.
+- Landing copy describes controls that later phases build: field encryption and blind index (Phase 4), checklist persistence (Phase 8), export and delete (settings). Re-verify the copy against reality in Phase 13.
+- The proxy doesn't redirect `/app/*` yet, because the session cookie name comes with Better Auth (Phase 3).
+- Dark theme only (D-013).
+
 ## In progress
 
 None.
@@ -45,6 +65,6 @@ None.
 
 - **HIBP API key** (paid). Needed only to run the live provider. Phase 5 builds and tests the adapter against fixtures without it (D-012).
 
-## Next: Phase 2, design system
+## Next: Phase 3, authentication
 
-Tokens (CSS variables + Tailwind theme), type pairing, layout shells for marketing/auth/app, navigation, the core and state components from spec 13.10, proxy.ts with security headers + CSP nonce (D-007), and an accessibility baseline. Replace the create-next-app boilerplate page.
+Re-check Better Auth plugin APIs (D-002), then build sign-up/in/out, email verification via Mailpit, sessions, the `/app/*` proxy redirect and protected layouts, audit events, and Redis rate limits, with tests.
