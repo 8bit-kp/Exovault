@@ -71,6 +71,11 @@ const envSchema = z
     MONGODB_URI: mongoUri,
     MONGODB_URI_TEST: mongoUri,
     REDIS_URL: z.url().default("redis://127.0.0.1:6379"),
+    // inline: scans run inside the web process (M1, single Node server). bullmq: a separate worker runs them (D-032).
+    SCAN_QUEUE: z.enum(["inline", "bullmq"]).default("inline"),
+    WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(64).default(4),
+    // How often the worker looks for identities due a scheduled scan.
+    MONITORING_TICK_MS: z.coerce.number().int().min(5_000).max(3_600_000).default(60_000),
 
     PROVIDER_MODE: z.enum(["mock", "live"]).default("mock"),
     HIBP_API_KEY: z

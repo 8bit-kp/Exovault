@@ -10,6 +10,8 @@ import { MonitoringStatus } from "@/components/monitoring/monitoring-status";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { requireUser } from "@/lib/auth/session";
 import { getIdentity } from "@/server/services/identity/identity-service";
+import { getMonitoringView } from "@/server/services/monitoring/monitoring-service";
+import Link from "next/link";
 import { LatestScanPanel } from "@/components/scan/latest-scan-panel";
 import { getLatestScan, manualScanAvailableIn } from "@/server/services/scan/scan-service";
 
@@ -21,6 +23,7 @@ export default async function IdentityDetailPage({ params }: PageProps<"/app/ide
   // Scoped by user: someone else's identity is a plain 404 (spec 12.1).
   const identity = await getIdentity(user.id, id);
   if (!identity) notFound();
+  const monitoring = await getMonitoringView(user.id, identity.id);
 
   return (
     <div className="space-y-8">
@@ -57,7 +60,17 @@ export default async function IdentityDetailPage({ params }: PageProps<"/app/ide
           <Panel>
             <PanelHeader title="Monitoring" />
             <PanelBody>
-              <MonitoringStatus state="off" lastScanAt={identity.lastScanAt} nextScanAt={null} />
+              <MonitoringStatus
+                state={monitoring?.state ?? "off"}
+                lastScanAt={monitoring?.lastScanAt ?? identity.lastScanAt}
+                nextScanAt={monitoring?.nextScanAt ?? null}
+              />
+              <Link
+                href="/app/monitoring"
+                className="mt-3 inline-block text-sm text-accent underline-offset-4 hover:underline"
+              >
+                Change monitoring
+              </Link>
             </PanelBody>
           </Panel>
         </>

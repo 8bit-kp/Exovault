@@ -1,6 +1,6 @@
 # Security
 
-> Status: describes controls that exist in code as of **Phase 8 (M1)**. Planned controls are listed in [THREAT-MODEL.md](THREAT-MODEL.md) with their phase. Not a substitute for an independent review.
+> Status: describes controls that exist in code as of **Phase 9**. Planned controls are listed in [THREAT-MODEL.md](THREAT-MODEL.md) with their phase. Not a substitute for an independent review.
 
 ## Authentication (Better Auth 1.7.7, D-002, D-018, D-019)
 
@@ -45,6 +45,16 @@
 | Sensitive sources (spec 2.3)  | hidden in lists, emails, page titles and the detail view model; reveal is explicit and audited        | `remediation.test.ts`, E2E             |
 | Input                         | checklist key must belong to the exposure; status from a fixed enum; dismiss reason from a fixed list | `remediation.test.ts`                  |
 | No raw breach data            | only categories are stored and shown; evidence links point at the provider's public page              | design + `exposure-engine.test.ts`     |
+
+## Worker and monitoring (D-032)
+
+| Control                         | Implementation                                                                     | Verified by                   |
+| ------------------------------- | ---------------------------------------------------------------------------------- | ----------------------------- |
+| No identifiers in Redis         | job payload is `{ scanId }`; decryption happens inside the worker's processor only | `worker.test.ts`              |
+| No double scheduling            | compare-and-set claim on `nextScanAt`; one active scan per identity (unique index) | `worker.test.ts`              |
+| Only verified, owned identities | enable checks ownership + verification; the scheduler re-checks both               | `worker.test.ts`              |
+| Monitoring IDOR                 | enable/disable/read scoped by `userId`                                             | `worker.test.ts`              |
+| URL filters (timeline)          | strict enum/pattern validation; injection-shaped values dropped                    | `dashboard-data.test.ts`, E2E |
 
 ## Rate limits (spec 12.3, D-020)
 

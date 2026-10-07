@@ -283,3 +283,29 @@ Format: **Context → Options → Decision → Consequences.** Newest last. Stat
   - **Sensitive sources:** the name is withheld from the detail view model and the page title until "Reveal" (audited, `SENSITIVE_SOURCE_REVEALED`).
   - **Demo mode:** an address containing `sensitive` deterministically includes the fictional sensitive source, for demos and E2E.
 - **Consequences:** Remediation is reversible and auditable, and the score reflects it immediately. "Dismissed" keeps half weight in the score, because nothing was fixed (RISK-SCORE.md).
+
+## D-032 — BullMQ worker and scheduled monitoring (2026-10-07)
+
+- **Context:** M2 needs scheduled scans and a worker that isn't the web process (spec 4.2, Part 10). M1's in-process queue (D-029) must keep working for single-server development.
+- **Decision:**
+  - **Queue choice:** `SCAN_QUEUE=inline | bullmq` picks the `ScanQueue` adapter; callers don't change.
+    - With `bullmq`, the web process only enqueues `{ scanId }`. Jobs use the ID `scan-<id>` (dedupe), 3 attempts with exponential backoff, and failed jobs are kept 7 days (dead letters).
+    - The processor is idempotent (compare-and-set `queued → running`), so retries and duplicates are harmless.
+  - **Worker (`workers/index.ts`):** a separate Node process with its own `tsconfig.worker.json`. It runs under `tsx` in development and as an esbuild bundle in production (`node --conditions=react-server dist/worker.mjs`).
+    - Scan concurrency is limited (`WORKER_CONCURRENCY`).
+    - The monitoring tick runs as a BullMQ job scheduler (`MONITORING_TICK_MS`), plus once at boot.
+    - On SIGTERM/SIGINT it shuts down gracefully, finishing in-flight jobs within 30 s.
+    - Scheduled scans the worker starts go through BullMQ too.
+  - **Schedule:**
+    - The database is the source of truth: `identities.monitoring {enabled, frequency 6h|12h|24h, nextScanAt}`.
+    - Each due identity is claimed with a compare-and-set on `nextScanAt`, which moves forward by the interval ±10% jitter. Concurrent ticks never double-schedule (tested).
+    - After downtime, an overdue identity gets one scan, not one per missed slot.
+    - Turning monitoring on schedules the first check within 1–5 minutes, or continues from a recent scan.
+    - Turning it off cancels scheduled scans that haven't started (`failureReason: "cancelled"`).
+    - Scheduled scans skip the manual cooldown; the schedule is their limit.
+  - **States:** monitoring is `active`, `off`, or `degraded` (on, but the last scheduled scan failed).
+  - **Timeline** (spec 13.7): server-side filters (severity, status, source type, identity, month range) validated strictly from the URL, pagination 20 per page, grouped by month, and works without JavaScript.
+- **Consequences:**
+  - The web app can now run on serverless with `SCAN_QUEUE=bullmq`, provided the worker runs on a container host (DEPLOYMENT.md).
+  - E2E runs the real worker (`SCAN_QUEUE=bullmq`), so every E2E scan crosses web → Redis → worker → MongoDB.
+  - Notifications for NEW / CHANGED exposures are Phase 10. Scans already persist the diff they need.

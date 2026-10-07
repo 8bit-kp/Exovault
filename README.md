@@ -2,7 +2,7 @@
 
 **A privacy-first exposure intelligence platform for individuals.** Exovault checks whether your _verified_ identifiers appear in legitimate breach and credential-exposure sources, and tells you what to do about it.
 
-> **Status: M1 (MVP) complete, Phase 8 of 13.** Sign up, verify an address, scan it with live progress, get an explainable Exposure Risk Score, open each exposure, and work through a remediation checklist that lowers the score (demo providers by default, clearly labelled; HIBP with a key). Next: scheduled monitoring and notifications (M2). See [`docs/PROGRESS.md`](docs/PROGRESS.md).
+> **Status: Phase 9 of 13 (M2 in progress).** Everything in M1 (sign-up, verified identities, live scans, explainable risk score, exposure details and remediation), plus scheduled monitoring run by a separate BullMQ worker and a filterable timeline. Next: email notifications. See [`docs/PROGRESS.md`](docs/PROGRESS.md).
 
 ## What it is not
 
@@ -21,6 +21,7 @@ npm run db:indexes        # create MongoDB indexes explicitly
 npm run seed              # demo account with fictional exposures (PROVIDER_MODE=mock)
 # npm run keys:rotate     # after changing IDENTIFIER_ENCRYPTION_ACTIVE_KEY_ID
 npm run dev
+npm run worker            # only when SCAN_QUEUE=bullmq (scans + scheduled monitoring)
 ```
 
 On Windows, run Redis through Docker or WSL. Redis doesn't officially support native Windows.

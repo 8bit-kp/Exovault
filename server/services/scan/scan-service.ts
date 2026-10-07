@@ -36,6 +36,8 @@ import { persistExposures } from "@/server/services/exposure/persistence";
 import type { RetryPolicy } from "@/server/services/exposure/resilience";
 import { getIdentity, withDecryptedIdentity } from "@/server/services/identity/identity-service";
 import { recomputeRiskScore } from "@/server/services/risk/risk-service";
+import { getEnv } from "@/config/env";
+import { createBullmqScanQueue } from "./bullmq-queue";
 import { createInProcessQueue, type ScanQueue } from "./queue";
 
 /**
@@ -54,8 +56,16 @@ const globalCache = globalThis as typeof globalThis & { __exovaultScanQueue?: Sc
 let processorOptions: { providers?: ExposureProvider[]; policy?: RetryPolicy } = {};
 
 export function getScanQueue(): ScanQueue {
-  globalCache.__exovaultScanQueue ??= createInProcessQueue((scanId) => processScan(scanId));
+  globalCache.__exovaultScanQueue ??=
+    getEnv().SCAN_QUEUE === "bullmq"
+      ? createBullmqScanQueue()
+      : createInProcessQueue((scanId) => processScan(scanId));
   return globalCache.__exovaultScanQueue;
+}
+
+/** Test seam: use a specific queue (e.g. BullMQ with an isolated prefix). */
+export function setScanQueue(queue: ScanQueue | undefined): void {
+  globalCache.__exovaultScanQueue = queue;
 }
 
 /** Test seam: providers/policy used by the processor, and a fresh queue. */
@@ -141,6 +151,31 @@ export async function startManualScan(
     return { ok: false, reason: "cooldown", retryAfterSeconds: Math.max(1, Math.ceil(retryAfterMs / 1000)) };
   }
   return createAndEnqueue({ userId, identityId: _id, trigger: "manual", providers: providersFor(), ctx });
+}
+
+/**
+ * A scheduled scan (spec Part 10): no cooldown (the schedule is the limit),
+ * only for verified identities with monitoring on. Skips if a scan is running.
+ */
+export async function startScheduledScan(
+  userId: string,
+  identityId: string,
+  now = new Date(),
+): Promise<StartScanResult> {
+  const identity = await getIdentity(userId, identityId);
+  if (!identity) return { ok: false, reason: "not_found" };
+  if (identity.verification !== "verified") return { ok: false, reason: "not_verified" };
+  const _id = new Types.ObjectId(identity.id);
+  await failStaleScans(_id, new Date(now.getTime() - SCAN_STALE_AFTER_MS), now);
+  const active = await findActiveScanForIdentity(_id);
+  if (active) return { ok: true, scanId: active._id.toHexString(), reused: true };
+  return createAndEnqueue({
+    userId,
+    identityId: _id,
+    trigger: "scheduled",
+    providers: providersFor(),
+    ctx: { requestId: null },
+  });
 }
 
 /** "Retry failed source" on a partial scan: rescans only the providers that failed. */

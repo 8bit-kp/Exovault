@@ -197,7 +197,7 @@ function WhatWeCheck() {
             <li>One verified email address per account</li>
             <li>Known data breaches reported by our configured providers</li>
             <li>Which kinds of data were involved (passwords, phone numbers, addresses, …)</li>
-            <li>On-demand scans with per-source results</li>
+            <li>On-demand scans with per-source results, and scheduled re-checks</li>
           </ul>
         </Panel>
         <Panel className="p-6">
@@ -327,12 +327,12 @@ function Monitoring() {
       id="monitoring"
       index="06"
       eyebrow="Continuous monitoring"
-      title="Scheduled re-checks are in development."
-      intro="Today, scans run when you ask. Next, scheduled monitoring will re-check your verified identities, tell you only about new or changed findings, and never alert you twice about the same thing. Until it ships, the dashboard says “Monitoring: Off”."
+      title="Re-checks on a schedule you choose."
+      intro="Turn on monitoring for a verified address and we'll re-check it every 6 hours, 12 hours or daily, against the same sources as a manual scan. New or changed findings show up on your dashboard. Email alerts are coming next."
     >
       <div className="flex flex-wrap gap-3 text-sm">
         <span className="inline-flex items-center gap-2 rounded-md border border-line bg-surface-1 px-3 py-2 text-fg-muted">
-          <Radar aria-hidden className="size-4 text-fg-subtle" /> Scheduled scans: planned
+          <Radar aria-hidden className="size-4 text-accent" /> Scheduled scans: available
         </span>
         <span className="inline-flex items-center gap-2 rounded-md border border-line bg-surface-1 px-3 py-2 text-fg-muted">
           <BellRing aria-hidden className="size-4 text-fg-subtle" /> Email alerts: planned

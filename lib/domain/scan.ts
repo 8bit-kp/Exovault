@@ -35,5 +35,5 @@ export const MANUAL_SCAN_COOLDOWN_MS = 15 * 60_000;
 export const SCAN_STALE_AFTER_MS = 2 * 60_000;
 
 /** Safe, user-facing failure reasons for a whole scan. */
-export const SCAN_FAILURE_REASONS = ["all_sources_failed", "interrupted", "internal"] as const;
+export const SCAN_FAILURE_REASONS = ["all_sources_failed", "interrupted", "internal", "cancelled"] as const;
 export type ScanFailureReason = (typeof SCAN_FAILURE_REASONS)[number];

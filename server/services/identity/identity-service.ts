@@ -99,7 +99,7 @@ function toView(record: IdentityRecord): IdentityView {
     type: record.type,
     masked: record.valueMasked,
     verification: record.verificationStatus,
-    monitoring: "off",
+    monitoring: record.monitoring?.enabled ? "active" : "off",
     lastScanAt: record.lastScanAt ? record.lastScanAt.toISOString() : null,
     activeExposures: 0,
   };

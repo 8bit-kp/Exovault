@@ -1,6 +1,6 @@
 # Testing
 
-> Status: **end of M1 (Phase 8).** Every suite below runs locally and in CI. Automated tests use deterministic fixtures and mock providers only: no live breach APIs and no real third-party addresses.
+> Status: **Phase 9.** Every suite below runs locally and in CI. Automated tests use deterministic fixtures and mock providers only: no live breach APIs and no real third-party addresses.
 
 ## Suites
 
@@ -45,6 +45,17 @@ Isolation: tests set their own env (`tests/setup/test-env.ts`) and never read `.
 - Remediation: checklist-driven state, transitions, reasons, reveal audit, cascade.
 - Audit log: hashed, append-only.
 
+**Worker** (`worker.test.ts`)
+
+- BullMQ end to end with an isolated prefix.
+- The payload holds IDs only.
+- The job scheduler is registered.
+- Graceful close finishes in-flight scans.
+- Due → exactly one scheduled scan; next time moves on.
+- Concurrent ticks never double-schedule; one scan after days of downtime.
+- Disabled, unverified and removed identities are never scheduled.
+- Disabling cancels queued scans; degraded state; monitoring IDOR.
+
 **Security** (`tests/security`, `*-idor`, and IDOR blocks inside integration files)
 
 - **IDOR matrix:** another user's identities, scans, exposures, remediation, and sensitive-source reveal all return "not found".
@@ -66,4 +77,4 @@ Isolation: tests set their own env (`tests/setup/test-env.ts`) and never read `.
 
 - **Load sensitivity:** E2E journeys hash passwords (scrypt), so files with heavy auth run their tests in order, with generous post-submit timeouts. Locally, 4 workers run; in CI, 2.
 - **Per-test client IP:** each test sends its own `X-Forwarded-For`, simulating one trusted proxy (`TRUSTED_PROXY_COUNT=1`), so parallel tests don't share per-IP rate limits. A dedicated test proves the limit still triggers.
-- **Not yet covered:** the BullMQ worker (M2), notifications (M2), and data export and deletion (not built yet).
+- **Not yet covered:** notifications (Phase 10), and data export and deletion (not built yet).

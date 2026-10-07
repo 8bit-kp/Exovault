@@ -1,6 +1,6 @@
 # API
 
-> Status: **Phase 8.** Describes what exists. Pattern (spec 12.2): request ID → authenticate → authorize (ownership in the query) → rate-limit → validate → service → typed response. Others' resources are **not found**, never forbidden.
+> Status: **Phase 9.** Describes what exists. Pattern (spec 12.2): request ID → authenticate → authorize (ownership in the query) → rate-limit → validate → service → typed response. Others' resources are **not found**, never forbidden.
 
 ## Route Handlers
 
@@ -24,3 +24,7 @@ There is deliberately **no** `/api/auth/*` surface (D-018). Both routes are GET-
 | `retryScanAction`                                                                                                                       | `scanId`, `flow`                | `scan-service.retryFailedSources`         | 3 / hour / identity                                |
 
 Results map to fixed, safe messages (`FormState`); no stack traces or provider details reach the client.
+
+## Pages with query parameters
+
+`/app/timeline?severity=&status=&source=&identity=&from=YYYY-MM&to=YYYY-MM&page=`: every value is validated against a fixed enum or pattern. Invalid values are dropped, never passed to a query.

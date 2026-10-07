@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: 2026-10-07 (end of Phase 8, M1 complete)_
+_Last updated: 2026-10-07 (end of Phase 9)_
 
 ## Phase 0: Repository audit (done)
 
@@ -179,6 +179,20 @@ Built and verified (D-031):
 
 **Known gaps / carried forward (M2+):** scheduled monitoring and the worker (Phase 9), notifications (Phase 10), timeline page (spec 13.7, an M2 item), data export / account deletion workflow (spec 5.2), MFA, live HIBP key.
 
+## Phase 9: Monitoring (done)
+
+Built and verified (D-032):
+
+- [x] BullMQ adapter behind `ScanQueue` (`SCAN_QUEUE=inline|bullmq`): IDs-only payloads, dedupe job IDs, retries with backoff, 7-day dead-letter retention
+- [x] Worker process (`workers/`): own tsconfig, `npm run worker` / `worker:build` (esbuild), concurrency limit, monitoring tick as a job scheduler + at boot, graceful shutdown (smoke-tested with SIGTERM)
+- [x] Scheduling: frequencies 6h/12h/24h, ±10% jitter (unit-tested), DB as source of truth, compare-and-set claims, downtime reconciliation, cancel on disable, degraded state
+- [x] `/app/monitoring` (enable with frequency / disable), real monitoring state on the dashboard, identity page and identity cards; landing copy updated
+- [x] `/app/timeline` (spec 13.7): grouped by month, server-side validated filters, pagination, no-JS form
+- [x] Tests: unit (schedule); integration (worker end to end, scheduler, concurrency, reconciliation, cancellation, degraded, IDOR, timeline filters/pagination/validation); E2E now runs the real worker (all scans cross web → BullMQ → worker), plus monitoring on/off and timeline specs
+- [x] CI builds the worker; docs updated
+
+**Known gaps / carried forward:** email notifications + preferences + idempotent alerts (Phase 10). Dockerfiles for web and worker (Phase 13). Data export / account deletion, MFA, live HIBP key.
+
 ## In progress
 
 None.
@@ -187,6 +201,6 @@ None.
 
 - **HIBP API key** (paid; Core 1 is enough for development). Needed only to run the live provider.
 
-## Next: Phase 9, monitoring (M2)
+## Next: Phase 10, notifications (completes M2)
 
-A separate BullMQ worker (`workers/index.ts`, its own tsconfig) behind the existing `ScanQueue` interface; scheduled scans per identity (6h / 12h / daily) with jitter and the DB as source of truth (reconcile on boot); retries, dead letters, graceful shutdown, concurrency limits; enable/disable monitoring (cancels jobs); the timeline page; worker tests against real Redis.
+`NotificationProvider` abstraction over the existing `EmailProvider`. Notify only for NEW or materially CHANGED exposures, with dedupe key `identityId + fingerprint + channel` (unique index; never re-notify). Preferences: channel on/off, minimum severity, immediate vs digest, quiet hours, timezone. Email content per spec (masked identity, source omitted if sensitive, preferences/unsubscribe link). `/app/notifications` and `/app/settings/notifications`, plus tests.

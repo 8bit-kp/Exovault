@@ -1,16 +1,17 @@
 # Deployment
 
-> Status: **first version (end of M1).** Not yet deployed anywhere; this describes what the code needs. It gets finalised and verified in Phase 13.
+> Status: **Phase 9.** Not yet deployed anywhere; this describes what the code needs. It gets finalised and verified in Phase 13.
 
 ## Topology (M1)
 
-| Component | Requirement                                                                                                                                                                                                                                                                          |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Web app   | a **long-running Node ≥ 22 server** (`npm run build && npm run start`, or a container). Scans run in an in-process queue (D-029), so **serverless is not supported until the M2 worker exists**. Serve over HTTPS, so the session cookie gets the `__Host-` prefix and HSTS applies. |
-| MongoDB   | a managed cluster (e.g. Atlas) or an authenticated self-hosted instance. **Never an open instance.** Use a least-privilege user with read/write on the app database only. A standalone server works (no transactions needed, D-004).                                                 |
-| Redis     | managed or self-hosted, with `maxmemory-policy noeviction` and auth/TLS. Used for rate limits and provider budgets now, BullMQ in M2. Rate limits **fail closed**, so Redis is required.                                                                                             |
-| Email     | a transactional provider's SMTP relay (`SMTP_HOST/PORT/SECURE/USER/PASSWORD`, `EMAIL_FROM` on a domain with SPF/DKIM).                                                                                                                                                               |
-| Proxy     | if a load balancer or CDN sits in front, set `TRUSTED_PROXY_COUNT` to the number of hops that append `X-Forwarded-For` (D-021).                                                                                                                                                      |
+| Component | Requirement                                                                                                                                                                                                                                                                                                                                |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Web app   | Node ≥ 22 (`npm run build && npm run start`) or a container. With `SCAN_QUEUE=bullmq` the web app only enqueues, so it can also run on serverless. With `SCAN_QUEUE=inline` (single server) it needs a long-running process. Serve over HTTPS, so the session cookie gets the `__Host-` prefix and HSTS applies.                           |
+| Worker    | **required when `SCAN_QUEUE=bullmq`**: a long-running container or VM running `npm run worker:build` then `node --conditions=react-server dist/worker.mjs`. It needs the same env as the web app. Scale it by running more instances; scheduling claims are atomic. It stops gracefully on SIGTERM (finishes in-flight scans, 30 s limit). |
+| MongoDB   | a managed cluster (e.g. Atlas) or an authenticated self-hosted instance. **Never an open instance.** Use a least-privilege user with read/write on the app database only. A standalone server works (no transactions needed, D-004).                                                                                                       |
+| Redis     | managed or self-hosted, with `maxmemory-policy noeviction` and auth/TLS. Used for rate limits and provider budgets now, BullMQ in M2. Rate limits **fail closed**, so Redis is required.                                                                                                                                                   |
+| Email     | a transactional provider's SMTP relay (`SMTP_HOST/PORT/SECURE/USER/PASSWORD`, `EMAIL_FROM` on a domain with SPF/DKIM).                                                                                                                                                                                                                     |
+| Proxy     | if a load balancer or CDN sits in front, set `TRUSTED_PROXY_COUNT` to the number of hops that append `X-Forwarded-For` (D-021).                                                                                                                                                                                                            |
 
 ## Steps
 

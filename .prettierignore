@@ -5,3 +5,4 @@ package-lock.json
 docs/MASTER-PROMPT.md
 CLAUDE.md
 AGENTS.md
+dist

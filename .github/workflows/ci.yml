@@ -53,6 +53,7 @@ jobs:
       # Integration + security suites: in-memory standalone MongoDB, real Redis (DB 15).
       - run: npm run test:integration
       - run: npm run build
+      - run: npm run worker:build
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test
       - uses: actions/upload-artifact@v4

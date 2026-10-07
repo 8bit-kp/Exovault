@@ -22,6 +22,8 @@ export const E2E_ENV = {
   TRUSTED_PROXY_COUNT: "1",
   // Two, so E2E can exercise verifying a second address and hitting the limit.
   MAX_ACTIVE_IDENTITIES_PER_USER: "2",
+  // Scans run in the separate BullMQ worker, as in a production deployment (D-032).
+  SCAN_QUEUE: "bullmq",
 };
 
 /**
@@ -59,6 +61,14 @@ export default defineConfig({
             timeout: 15_000,
           },
         ]),
+    {
+      // The worker has no HTTP port: wait for its startup log line instead.
+      command: "npx tsx --conditions=react-server --env-file-if-exists=.env.local workers/index.ts",
+      wait: { stdout: /worker started/ },
+      reuseExistingServer: false,
+      timeout: 60_000,
+      env: { ...E2E_ENV, LOG_LEVEL: "info" },
+    },
     {
       command: `npx next start --hostname 127.0.0.1 --port ${PORT}`,
       url: BASE_URL,

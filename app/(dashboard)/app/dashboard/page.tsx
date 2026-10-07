@@ -27,6 +27,7 @@ import {
 import { listIdentities } from "@/server/services/identity/identity-service";
 import { getRecommendedActions } from "@/server/services/remediation/recommendations";
 import { getRiskScores } from "@/server/services/risk/risk-service";
+import { getMonitoringView } from "@/server/services/monitoring/monitoring-service";
 import { getLatestScan, manualScanAvailableIn } from "@/server/services/scan/scan-service";
 
 export const metadata: Metadata = { title: "Dashboard" };
@@ -47,6 +48,7 @@ export default async function DashboardPage() {
   const verified = identities.find((i) => i.verification === "verified");
   const pending = identities.find((i) => i.verification === "pending");
   const latestScan = verified ? await getLatestScan(user.id, verified.id) : null;
+  const monitoring = verified ? await getMonitoringView(user.id, verified.id) : null;
   const hasScanned = Boolean(risk.current) || Boolean(latestScan);
   const active = exposures.filter(isActiveExposure);
   const anyDemo = exposures.some((e) => e.isDemo) || Boolean(latestScan?.isDemo);
@@ -118,7 +120,11 @@ export default async function DashboardPage() {
           <Panel aria-labelledby="monitoring-heading">
             <PanelHeader id="monitoring-heading" title="Monitoring" />
             <PanelBody>
-              <MonitoringStatus state="off" lastScanAt={latestScan?.finishedAt ?? null} nextScanAt={null} />
+              <MonitoringStatus
+                state={monitoring?.state ?? "off"}
+                lastScanAt={monitoring?.lastScanAt ?? latestScan?.finishedAt ?? null}
+                nextScanAt={monitoring?.nextScanAt ?? null}
+              />
             </PanelBody>
           </Panel>
         </div>

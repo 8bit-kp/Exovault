@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "next typegen && tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit && tsc -p tsconfig.worker.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "format": "prettier --write .",
@@ -19,10 +19,13 @@
     "test:unit": "vitest run --project node --project components",
     "test:integration": "vitest run --project integration",
     "keys:rotate": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/rotate-identity-keys.ts",
-    "seed": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/seed.ts"
+    "seed": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/seed.ts",
+    "worker": "tsx --conditions=react-server --env-file-if-exists=.env.local workers/index.ts",
+    "worker:build": "esbuild workers/index.ts --bundle --platform=node --target=node22 --format=esm --packages=external --tsconfig=tsconfig.worker.json --outfile=dist/worker.mjs"
   },
   "dependencies": {
     "better-auth": "^1.7.7",
+    "bullmq": "^6.3.11",
     "clsx": "^2.1.1",
     "ioredis": "^6.0.0",
     "lucide-react": "^1.52.0",
@@ -50,6 +53,7 @@
     "@vitejs/plugin-react": "^6.1.2",
     "@vitest/coverage-v8": "^4.1.11",
     "axe-core": "^4.14.0",
+    "esbuild": "^0.28.2",
     "eslint": "^9",
     "eslint-config-next": "16.3.8",
     "eslint-config-prettier": "^10.1.8",

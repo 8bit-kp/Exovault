@@ -6,6 +6,7 @@ import { createMockProvider } from "@/server/providers/exposure/mock";
 import { listRecentActivity } from "@/server/services/activity/activity-service";
 import { activeSeverityCounts, listExposuresForUser } from "@/server/services/exposure/exposure-query";
 import { DEFAULT_RETRY_POLICY } from "@/server/services/exposure/resilience";
+import { listTimeline, parseTimelineFilters } from "@/server/services/exposure/timeline-query";
 import { addEmailIdentity, removeIdentity } from "@/server/services/identity/identity-service";
 import { getRiskScores } from "@/server/services/risk/risk-service";
 import { configureScanProcessing, getScanQueue, startManualScan } from "@/server/services/scan/scan-service";
@@ -96,5 +97,54 @@ describe("dashboard read models", () => {
     expect(JSON.stringify(activity)).not.toContain("private.person");
     const otherIds = (await listRecentActivity(other.userId)).map((a) => a.id);
     expect(activity.some((a) => otherIds.includes(a.id))).toBe(false);
+  });
+});
+
+describe("timeline query (spec 13.7)", () => {
+  it("filters server-side and scopes to the user", async () => {
+    const who = await scannedUser("timeline@example.com");
+    const other = await scannedUser("timeline.other@example.com");
+    const all = await listTimeline(who.userId, parseTimelineFilters({}));
+    expect(all.total).toBe(4);
+    expect(all.items.every((e) => e.identityMasked === "t****e@example.com")).toBe(true);
+
+    expect((await listTimeline(who.userId, parseTimelineFilters({ severity: "critical" }))).total).toBe(1);
+    expect((await listTimeline(who.userId, parseTimelineFilters({ status: "remediated" }))).total).toBe(0);
+    expect((await listTimeline(who.userId, parseTimelineFilters({ identity: other.identityId }))).total).toBe(
+      0,
+    );
+    expect(
+      (await listTimeline(who.userId, parseTimelineFilters({ from: "2000-01", to: "2000-12" }))).total,
+    ).toBe(0);
+  });
+
+  it("ignores invalid or injection-shaped filters instead of trusting them", () => {
+    expect(
+      parseTimelineFilters({
+        severity: '{"$ne":null}',
+        status: "x",
+        identity: "zz",
+        from: "2026-13",
+        page: "-3",
+      }),
+    ).toEqual({ page: 1 });
+  });
+
+  it("paginates 20 per page, newest first, and clamps out-of-range pages", async () => {
+    const who = await scannedUser("pages@example.com");
+    const base = await getAuthDb().collection("exposures").findOne({ userId: who.userId });
+    const extra = Array.from({ length: 30 }, (_, i) => ({
+      ...base,
+      _id: new Types.ObjectId(),
+      fingerprint: i.toString(16).padStart(64, "0"),
+      firstSeenAt: new Date(Date.UTC(2026, 0, 1 + i)),
+    }));
+    await getAuthDb().collection("exposures").insertMany(extra);
+    const first = await listTimeline(who.userId, parseTimelineFilters({}));
+    expect(first).toMatchObject({ total: 34, pages: 2, page: 1 });
+    expect(first.items).toHaveLength(20);
+    const times = first.items.map((e) => Date.parse(e.discoveredAt));
+    expect([...times].sort((a, b) => b - a)).toEqual(times);
+    expect((await listTimeline(who.userId, parseTimelineFilters({ page: "99" }))).page).toBe(2);
   });
 });

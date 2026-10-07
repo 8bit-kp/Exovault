@@ -1,6 +1,6 @@
 # Architecture
 
-> Status: **Phase 8: M1 complete.** Built: exposure details and remediation (D-031), the dashboard and Exposure Risk Score ([RISK-SCORE.md](RISK-SCORE.md)), scanning (§5: persisted states, lock, cooldown, SSE progress), the exposure engine (§4), identities (encrypted storage, blind index, masking, ownership verification, onboarding; §6). Also built: the UI layer ([DESIGN-SYSTEM.md](DESIGN-SYSTEM.md)), `proxy.ts` (CSP, request ID, coarse `/app` redirect), and authentication ([SECURITY.md](SECURITY.md)): Server Actions → `server/services/account` → Better Auth in-process, Redis rate limits, audit log. Each section says whether it is **built** or **designed**. Nothing marked _designed_ exists in code yet.
+> Status: **Phase 9.** Built: the BullMQ worker and scheduled monitoring (D-032), the timeline, exposure details and remediation (D-031), the dashboard and Exposure Risk Score ([RISK-SCORE.md](RISK-SCORE.md)), scanning (§5: persisted states, lock, cooldown, SSE progress), the exposure engine (§4), identities (encrypted storage, blind index, masking, ownership verification, onboarding; §6). Also built: the UI layer ([DESIGN-SYSTEM.md](DESIGN-SYSTEM.md)), `proxy.ts` (CSP, request ID, coarse `/app` redirect), and authentication ([SECURITY.md](SECURITY.md)): Server Actions → `server/services/account` → Better Auth in-process, Redis rate limits, audit log. Each section says whether it is **built** or **designed**. Nothing marked _designed_ exists in code yet.
 
 ## 1. System overview
 
@@ -82,13 +82,13 @@ Key rotation: new writes use the active key id. `npm run keys:rotate` (`server/s
 
 ## 7. Process & runtime model
 
-| Process | Runs                                                    | Status                               |
-| ------- | ------------------------------------------------------- | ------------------------------------ |
-| Web     | `next dev` / `next start`                               | scaffolded                           |
-| Worker  | `tsx workers/index.ts` (dev), separate container (prod) | designed (M2)                        |
-| MongoDB | local Community Server 8.2 standalone                   | running locally, connection verified |
-| Redis   | native 8.4 or `docker compose up -d`                    | available, unused until Phase 3      |
-| Mailpit | `docker compose up -d`                                  | configured                           |
+| Process | Runs                                                                                  | Status                               |
+| ------- | ------------------------------------------------------------------------------------- | ------------------------------------ |
+| Web     | `next dev` / `next start`                                                             | scaffolded                           |
+| Worker  | `npm run worker` (dev, tsx) · `node --conditions=react-server dist/worker.mjs` (prod) | **built** (Phase 9, D-032)           |
+| MongoDB | local Community Server 8.2 standalone                                                 | running locally, connection verified |
+| Redis   | native 8.4 or `docker compose up -d`                                                  | available, unused until Phase 3      |
+| Mailpit | `docker compose up -d`                                                                | configured                           |
 
 ## 8. What exists today (Phase 1)
 

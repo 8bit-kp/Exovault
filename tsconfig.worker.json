@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "plugins": []
+  },
+  "include": [
+    "workers/**/*.ts",
+    "server/**/*.ts",
+    "lib/**/*.ts",
+    "config/**/*.ts",
+    "models/**/*.ts",
+    "components/**/*.ts"
+  ],
+  "exclude": ["node_modules", "app", "tests"]
+}
