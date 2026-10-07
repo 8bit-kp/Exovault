@@ -1,6 +1,6 @@
 # Testing
 
-> Status: **Phase 10 (M2).** Every suite below runs locally and in CI. Automated tests use deterministic fixtures and mock providers only: no live breach APIs and no real third-party addresses.
+> Status: **Phase 11.** Every suite below runs locally and in CI. Automated tests use deterministic fixtures and mock providers only: no live breach APIs and no real third-party addresses.
 
 ## Suites
 
@@ -65,6 +65,14 @@ Isolation: tests set their own env (`tests/setup/test-env.ts`) and never read `.
 - Concurrent dispatchers send each alert exactly once; retries then fail after 3.
 - Real rendering: no identifier or source in the subject, RFC 8058 headers.
 - Unsubscribe tokens (valid, forged, missing); inbox scoping; 90-day TTL.
+
+**Phase 11 security tests**
+
+- `account-takeover.test.ts`: the full pre-account hijacking attack and the claim; nonce binding; codes refused for verified accounts; reset = mailbox proof.
+- `abuse-limits.test.ts`: per-target code budget across accounts; reveal and unsubscribe caps; sensitive names absent from detail and list models.
+- `log-leakage.test.ts`: real flows at trace level, scanning serialized log output for planted passwords, codes, tokens, identifiers and server keys.
+- `hardening.test.ts`: request IDs, evidence URLs, strict ObjectIds, short GCM tags rejected, production refusing test secrets.
+- E2E `csrf.spec.ts`: a Server Action replayed with a foreign Origin is refused; framing denied; security.txt; deny-all CSP on `/api`.
 
 **Security** (`tests/security`, `*-idor`, and IDOR blocks inside integration files)
 

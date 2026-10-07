@@ -3,6 +3,7 @@ import { Types } from "mongoose";
 import { RATE_LIMITS } from "@/config/rate-limits";
 import { recordAuditEvent } from "@/lib/audit";
 import { connectToDatabase } from "@/lib/db/mongoose";
+import { parseObjectId } from "@/lib/db/object-id";
 import { EXPOSURE_SEVERITIES, type ExposureSeverity, type ScanState } from "@/lib/domain/exposure";
 import {
   MANUAL_SCAN_COOLDOWN_MS,
@@ -144,7 +145,11 @@ export async function startManualScan(
   const active = await findActiveScanForIdentity(_id);
   if (active) return { ok: true, scanId: active._id.toHexString(), reused: true };
 
-  const recent = await latestCountedManualScan(_id, new Date(now.getTime() - MANUAL_SCAN_COOLDOWN_MS));
+  const recent = await latestCountedManualScan(
+    userId,
+    _id,
+    new Date(now.getTime() - MANUAL_SCAN_COOLDOWN_MS),
+  );
   if (recent) {
     // A concurrent start may have just created it: that's "already running", not "cooldown".
     if (recent.active) return { ok: true, scanId: recent._id.toHexString(), reused: true };
@@ -422,16 +427,23 @@ export async function getScanForUser(userId: string, scanId: string): Promise<Sc
 }
 
 export async function getLatestScan(userId: string, identityId: string): Promise<ScanView | null> {
-  if (!Types.ObjectId.isValid(identityId)) return null;
-  const scan = await latestScanForIdentity(userId, new Types.ObjectId(identityId));
+  const _id = parseObjectId(identityId);
+  if (!_id) return null;
+  const scan = await latestScanForIdentity(userId, _id);
   return scan ? toScanView(scan) : null;
 }
 
 /** Seconds until a manual scan is allowed again for this identity (0 = now). */
-export async function manualScanAvailableIn(identityId: string, now = new Date()): Promise<number> {
-  if (!Types.ObjectId.isValid(identityId)) return 0;
+export async function manualScanAvailableIn(
+  userId: string,
+  identityId: string,
+  now = new Date(),
+): Promise<number> {
+  const _id = parseObjectId(identityId);
+  if (!_id) return 0;
   const recent = await latestCountedManualScan(
-    new Types.ObjectId(identityId),
+    userId,
+    _id,
     new Date(now.getTime() - MANUAL_SCAN_COOLDOWN_MS),
   );
   if (!recent) return 0;

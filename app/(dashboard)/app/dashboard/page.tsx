@@ -154,7 +154,7 @@ export default async function DashboardPage() {
         <LatestScanPanel
           identity={verified}
           scan={latestScan}
-          availableInSeconds={await manualScanAvailableIn(verified.id)}
+          availableInSeconds={await manualScanAvailableIn(user.id, verified.id)}
         />
       ) : null}
 

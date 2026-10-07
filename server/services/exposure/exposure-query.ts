@@ -2,6 +2,7 @@ import "server-only";
 import { Types } from "mongoose";
 import type { ExposureView } from "@/components/exposure/types";
 import { connectToDatabase } from "@/lib/db/mongoose";
+import { parseObjectId } from "@/lib/db/object-id";
 import { EXPOSURE_SEVERITIES, isActiveExposure, type ExposureSeverity } from "@/lib/domain/exposure";
 import { displayPriority, SEVERITY_RANK } from "@/lib/domain/severity";
 import { Exposure, type ExposureDoc } from "@/models/Exposure";
@@ -25,8 +26,9 @@ export async function listExposuresForUser(
   await connectToDatabase();
   const filter: Record<string, unknown> = { userId };
   if (options.identityId) {
-    if (!Types.ObjectId.isValid(options.identityId)) return [];
-    filter.identityId = new Types.ObjectId(options.identityId);
+    const identityId = parseObjectId(options.identityId);
+    if (!identityId) return [];
+    filter.identityId = identityId;
   }
   const [rows, identities] = await Promise.all([
     Exposure.find(filter).sort({ firstSeenAt: -1 }).limit(LIST_LIMIT).lean<Row[]>(),
@@ -37,7 +39,8 @@ export async function listExposuresForUser(
 
   const views = rows.map<ExposureView>((row) => ({
     id: String(row._id),
-    sourceName: row.sourceName,
+    // Never in view models for sensitive sources (spec 2.3); revealed only via the audited action.
+    sourceName: row.isSensitiveSource ? "" : row.sourceName,
     sourceType: row.sourceType,
     severity: row.severity,
     breachDate: row.breachDate ? row.breachDate.toISOString() : null,

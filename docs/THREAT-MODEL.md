@@ -57,3 +57,18 @@ Browser ⇄ web app · web app ⇄ MongoDB · web app/worker ⇄ Redis · worker
 - Coverage is limited to configured providers. Absence of results is not safety.
 - Local dev MongoDB runs without auth (bound to localhost). Deployed environments must use authentication.
 - The dev-only lint toolchain has known advisories (D-008).
+
+## Phase 11 update (2026-10-07)
+
+A full review against spec Part 12 is recorded in [SECURITY.md](SECURITY.md#phase-11-security-review-2026-10-07). New threats identified and mitigated:
+
+| Component | Threat (STRIDE)                                                        | Mitigation                                                                              | Status     |
+| --------- | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | ---------- |
+| Auth      | **S/E** pre-account hijacking (attacker pre-registers victim's email)  | verification bound to the password-setting sign-up; claim via set-password link (D-034) | built (11) |
+| Auth      | **S** passwordless sign-in to verified accounts with an emailed code   | codes refused for verified accounts; resend only for bound, unverified accounts         | built (11) |
+| Email     | **D** inbox flooding of a third party (codes, "account exists")        | per-target-address and per-email limits (D-035)                                         | built (11) |
+| Tokens    | **T** forging unsubscribe tokens with truncated GCM tags               | 16-byte tags enforced                                                                   | built (11) |
+| API       | **D** SSE connection exhaustion; **E** revoked session keeps streaming | per-user stream limit; periodic session re-check                                        | built (11) |
+| Privacy   | **I** sensitive breach names via evidence links / view models          | withheld until the audited reveal                                                       | built (11) |
+
+**Residual risks (accepted):** targeted 15-minute sign-in lockout; per-IP limits spoofable without a trusted proxy; session tokens in plaintext in the database (library behaviour); soft 404 for cross-user URLs; at-least-once alert delivery.

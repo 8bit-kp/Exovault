@@ -105,7 +105,15 @@ function toView(record: IdentityRecord): IdentityView {
   };
 }
 
+class CodeBudgetExceeded extends Error {}
+
 async function issueCode(identityId: Types.ObjectId, userId: string, to: string, ctx: Ctx): Promise<void> {
+  // Per target address, across all accounts: one person can't flood someone else's inbox (D-035).
+  const budget = await limit(
+    RATE_LIMITS.identityCodeIssuePerAddress,
+    keyedHash("identity-blind-index", `email:${to}`),
+  );
+  if (!budget.allowed) throw new CodeBudgetExceeded();
   const code = randomInt(0, 1_000_000).toString().padStart(6, "0");
   await upsertVerificationCode({
     identityId,
@@ -215,7 +223,10 @@ export async function verifyIdentityCode(
   if (!identity) return { ok: false, reason: "not_found" };
   if (identity.verificationStatus === "verified") return { ok: false, reason: "already_verified" };
 
-  const blocked = await check(RATE_LIMITS.identityCodeAttemptsPerUser, actor.userId, actor, ctx);
+  const blocked =
+    (await check(RATE_LIMITS.identityCodeAttemptsPerUser, actor.userId, actor, ctx)) ??
+    // Guesses at one address's code are limited across every account trying it (D-035).
+    (await check(RATE_LIMITS.identityCodeAttemptsPerAddress, identity.valueBlindIndex, actor, ctx));
   if (blocked) return blocked;
 
   const code = typeof rawCode === "string" ? rawCode.trim() : "";
@@ -277,6 +288,8 @@ export async function resendIdentityCode(
     await issueCode(identity._id, actor.userId, to, ctx);
     return { ok: true };
   } catch (error) {
+    if (error instanceof CodeBudgetExceeded)
+      return { ok: false, reason: "rate_limited", retryAfterSeconds: 3600 };
     logger.error(
       { requestId: ctx.requestId, err: error instanceof Error ? error.name : "unknown" },
       "identity code resend failed",
@@ -293,6 +306,7 @@ export async function revealIdentity(
 ): Promise<{ ok: true; value: string } | { ok: false; reason: "not_found" | "error" }> {
   const identity = await findActiveIdentityForUser(actor.userId, identityId);
   if (!identity) return { ok: false, reason: "not_found" };
+  if (await check(RATE_LIMITS.revealPerUser, actor.userId, actor, ctx)) return { ok: false, reason: "error" };
   try {
     const value = decryptField(identity.valueEncrypted, aadFor(identity._id));
     await recordAuditEvent({

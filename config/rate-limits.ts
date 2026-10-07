@@ -37,4 +37,25 @@ export const RATE_LIMITS = {
   },
   // "Retry failed source" on a partial scan; separate from the 15-min manual cooldown (D-029).
   scanRetryPerIdentity: { name: "scan-retry:identity", limit: 3, windowMs: HOUR, failClosed: true },
+
+  // Phase 11 hardening (D-035).
+  // Per address, not per account: stops one person flooding someone else's inbox from many accounts.
+  signUpPerEmail: { name: "sign-up:email", limit: 3, windowMs: HOUR, failClosed: true },
+  identityCodeIssuePerAddress: {
+    name: "identity-code-issue:address",
+    limit: 5,
+    windowMs: DAY,
+    failClosed: true,
+  },
+  identityCodeAttemptsPerAddress: {
+    name: "identity-code:address",
+    limit: 10,
+    windowMs: 15 * MINUTE,
+    failClosed: true,
+  },
+  passwordResetSubmitPerIp: { name: "password-reset-submit:ip", limit: 10, windowMs: HOUR, failClosed: true },
+  // Audited, decrypting actions: generous for people, a ceiling for scripts.
+  revealPerUser: { name: "reveal:user", limit: 30, windowMs: HOUR, failClosed: true },
+  unsubscribePerIp: { name: "unsubscribe:ip", limit: 20, windowMs: HOUR, failClosed: true },
+  scanStreamsPerUser: { name: "scan-stream:user", limit: 30, windowMs: 5 * MINUTE, failClosed: true },
 } as const satisfies Record<string, RateLimitRule>;

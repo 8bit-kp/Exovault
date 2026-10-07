@@ -55,7 +55,7 @@ export default async function IdentityDetailPage({ params }: PageProps<"/app/ide
           <LatestScanPanel
             identity={identity}
             scan={await getLatestScan(user.id, identity.id)}
-            availableInSeconds={await manualScanAvailableIn(identity.id)}
+            availableInSeconds={await manualScanAvailableIn(user.id, identity.id)}
           />
           <Panel>
             <PanelHeader title="Monitoring" />

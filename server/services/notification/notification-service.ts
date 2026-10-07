@@ -5,6 +5,7 @@ import { recordAuditEvent } from "@/lib/audit";
 import { seal, unseal } from "@/lib/crypto/sealed";
 import { getAuthDb } from "@/lib/db/mongo-client";
 import { connectToDatabase } from "@/lib/db/mongoose";
+import { parseObjectId } from "@/lib/db/object-id";
 import { EXPOSURE_SEVERITIES, type ExposureSeverity } from "@/lib/domain/exposure";
 import {
   DEFAULT_PREFERENCES,
@@ -20,6 +21,8 @@ import {
 } from "@/lib/domain/notifications";
 import { getRemediationChecklist } from "@/lib/domain/remediation";
 import { logger } from "@/lib/logging/logger";
+import { RATE_LIMITS } from "@/config/rate-limits";
+import { limit } from "@/lib/rate-limit";
 import { Exposure } from "@/models/Exposure";
 import { Identity } from "@/models/Identity";
 import { Notification, type NotificationDoc } from "@/models/Notification";
@@ -99,7 +102,11 @@ export function createUnsubscribeToken(userId: string): string {
   return seal("unsubscribe", { userId }, UNSUBSCRIBE_TTL_SECONDS);
 }
 
-export async function unsubscribeWithToken(token: string | undefined): Promise<boolean> {
+export async function unsubscribeWithToken(token: string | undefined, ip?: string): Promise<boolean> {
+  if (ip) {
+    const budget = await limit(RATE_LIMITS.unsubscribePerIp, ip).catch(() => null);
+    if (!budget?.allowed) return false;
+  }
   const payload = unseal<{ userId: string }>("unsubscribe", token);
   if (!payload || typeof payload.userId !== "string") return false;
   await connectToDatabase();
@@ -194,10 +201,11 @@ export function setNotificationProvider(provider: NotificationProvider | undefin
 }
 
 async function accountEmail(userId: string): Promise<string | null> {
-  if (!Types.ObjectId.isValid(userId)) return null;
+  const _id = parseObjectId(userId);
+  if (!_id) return null;
   const user = await getAuthDb()
     .collection("user")
-    .findOne({ _id: new Types.ObjectId(userId) }, { projection: { email: 1, emailVerified: 1 } });
+    .findOne({ _id }, { projection: { email: 1, emailVerified: 1 } });
   return user?.emailVerified && typeof user.email === "string" ? user.email : null;
 }
 

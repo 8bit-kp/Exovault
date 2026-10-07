@@ -86,11 +86,13 @@ export async function latestScanForIdentity(
 
 /** Most recent manual scan that counts toward the cooldown (failed scans don't). */
 export async function latestCountedManualScan(
+  userId: string,
   identityId: Types.ObjectId,
   since: Date,
 ): Promise<ScanRecord | null> {
   await connectToDatabase();
   return Scan.findOne({
+    userId,
     identityId,
     trigger: "manual",
     state: mongoose.trusted({ $ne: "failed" }),

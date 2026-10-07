@@ -1,6 +1,9 @@
 import { isTerminalScanState } from "@/lib/domain/scan";
 import { getSession } from "@/lib/auth/session";
-import { notFound, unauthorized } from "@/lib/http/responses";
+import { json, notFound, unauthorized } from "@/lib/http/responses";
+import { RATE_LIMITS } from "@/config/rate-limits";
+import { getAuth } from "@/lib/auth/server";
+import { limit } from "@/lib/rate-limit";
 import { getScanForUser } from "@/server/services/scan/scan-service";
 
 /**
@@ -12,11 +15,15 @@ import { getScanForUser } from "@/server/services/scan/scan-service";
 const INTERVAL_MS = 1_000;
 const HEARTBEAT_MS = 15_000;
 const MAX_DURATION_MS = 5 * 60_000;
+const SESSION_RECHECK_TICKS = 10;
 
 export async function GET(request: Request, { params }: RouteContext<"/api/scans/[id]/events">) {
   const session = await getSession();
   if (!session) return unauthorized();
   const userId = session.user.id;
+  // Each stream polls the database: cap how many a user can open (D-035).
+  const budget = await limit(RATE_LIMITS.scanStreamsPerUser, userId).catch(() => null);
+  if (!budget?.allowed) return json({ error: "rate_limited" }, 429);
   const { id } = await params;
   const first = await getScanForUser(userId, id);
   if (!first) return notFound();
@@ -28,6 +35,7 @@ export async function GET(request: Request, { params }: RouteContext<"/api/scans
       let lastSent = "";
       let lastBeat = Date.now();
       let closed = false;
+      let ticks = 0;
       const close = () => {
         if (closed) return;
         closed = true;
@@ -52,6 +60,13 @@ export async function GET(request: Request, { params }: RouteContext<"/api/scans
         if (isTerminalScanState(scan.state) || Date.now() - started > MAX_DURATION_MS) break;
         await new Promise((resolve) => setTimeout(resolve, INTERVAL_MS));
         if (closed) break;
+        // A revoked session (sign-out, "sign out other sessions", password reset) ends the stream.
+        if (++ticks % SESSION_RECHECK_TICKS === 0) {
+          const stillValid = await getAuth()
+            .api.getSession({ headers: request.headers })
+            .catch(() => null);
+          if (!stillValid || stillValid.user.id !== userId) break;
+        }
         const next = await getScanForUser(userId, id);
         if (!next) break;
         scan = next;

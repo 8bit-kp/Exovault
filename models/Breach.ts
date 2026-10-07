@@ -22,7 +22,11 @@ const breachSchema = new Schema(
     isSensitive: { type: Boolean, required: true, default: false },
     // Bounded by the number of providers.
     providerRefs: { type: [providerRefSchema], default: [], validate: (v: unknown[]) => v.length <= 20 },
-    evidenceReferences: { type: [String], default: [], validate: (v: unknown[]) => v.length <= 20 },
+    evidenceReferences: {
+      type: [String],
+      default: [],
+      validate: (v: string[]) => v.length <= 20 && v.every((url) => /^https:\/\/[^\s]{1,490}$/.test(url)),
+    },
     /** Came from a demo/mock provider: the UI must label it "Demo data". */
     isDemo: { type: Boolean, required: true, default: false },
   },

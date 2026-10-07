@@ -40,6 +40,6 @@ async function main() {
 }
 
 main().catch((error: unknown) => {
-  logger.fatal({ err: error instanceof Error ? error.message : "unknown" }, "worker failed to start");
+  logger.fatal({ err: error instanceof Error ? error.name : "unknown" }, "worker failed to start");
   process.exit(1);
 });

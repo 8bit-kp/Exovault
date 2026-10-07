@@ -1,6 +1,6 @@
 # Security
 
-> Status: describes controls that exist in code as of **Phase 10 (M2)**. Planned controls are listed in [THREAT-MODEL.md](THREAT-MODEL.md) with their phase. Not a substitute for an independent review.
+> Status: describes controls that exist in code as of **Phase 11 (security review)**. Planned controls are listed in [THREAT-MODEL.md](THREAT-MODEL.md) with their phase. Not a substitute for an independent review.
 
 ## Authentication (Better Auth 1.7.7, D-002, D-018, D-019)
 
@@ -97,3 +97,40 @@ Per-request nonce CSP with no `'unsafe-inline'` in production, `frame-ancestors 
 - Per-IP limits are spoofable without a trusted proxy (D-021).
 - Cross-user resource URLs in the app return a soft 404 (status 200, `noindex`; D-025).
 - The encryption keyring lives in environment variables; a KMS-backed envelope (data keys wrapped by a KMS key) is the production upgrade path.
+
+## Phase 11 security review (2026-10-07)
+
+The review was done in three parallel, read-only passes (authorization/IDOR, injection/output handling, secrets/logging/cookies/limits), each citing file and line. Headers were checked against a running production build. Every finding was confirmed against the code before it was fixed.
+
+| ID  | Finding                                                                                                                           | Severity   | Status                                                |
+| --- | --------------------------------------------------------------------------------------------------------------------------------- | ---------- | ----------------------------------------------------- |
+| R1  | Pre-account hijacking: an emailed code verified an attacker-created account                                                       | **Medium** | Fixed (D-034), `account-takeover.test.ts`             |
+| R2  | Emailed code signed into an already-verified account without the password                                                         | Medium     | Fixed (D-034)                                         |
+| R3  | Sealed tokens accepted truncated GCM tags (unsubscribe-token forgery)                                                             | Low        | Fixed (D-035), unit test                              |
+| R4  | Pending-verification cookie not cleared over HTTPS (`__Host-` without `Secure`); not cleared on sign-out                          | Low/Medium | Fixed (D-035), E2E check                              |
+| R5  | Sensitive breach name exposed via evidence link; sensitive names in list view models                                              | Low        | Fixed (D-035), `abuse-limits.test.ts`                 |
+| R6  | SSE stream: no session re-check, no cap                                                                                           | Low/Medium | Fixed (D-035)                                         |
+| R7  | No limits per target address on ownership codes; sign-up only per IP                                                              | Low/Medium | Fixed (D-035), `abuse-limits.test.ts`                 |
+| R8  | Breached password burned the reset link; reset submit unlimited                                                                   | Low        | Fixed (D-035)                                         |
+| R9  | Unlimited reveals and unsubscribe                                                                                                 | Low        | Fixed (D-035), `abuse-limits.test.ts`                 |
+| R10 | Client `x-request-id` reaches audit when the proxy is skipped                                                                     | Low        | Fixed (D-035), unit test                              |
+| R11 | Evidence URLs not scheme-checked at runtime                                                                                       | Low        | Fixed (D-035), unit test                              |
+| R12 | Test/CI secrets would be accepted in production                                                                                   | Low        | Fixed (D-035), unit test                              |
+| R13 | Minor: loose ObjectId checks, unscoped cooldown helper, worker logged error message, scrubber unbounded, header keys not redacted | Info       | Fixed (D-035)                                         |
+| R14 | Per-account sign-in limit enables targeted 15-min lockout                                                                         | Low        | **Accepted** (trade-off; CAPTCHA is the upgrade path) |
+| R15 | Per-IP limits spoofable without a trusted proxy                                                                                   | Low        | **Accepted**, deployment requirement (D-021)          |
+
+**Verified correct (no change needed):**
+
+- **Authorization:** every Server Action, route handler and data page authenticates itself and scopes by the session user. There's no horizontal IDOR, no mass assignment, and no admin surface.
+- **Database queries:** no operator injection (`sanitizeFilter`, strict IDs; every `mongoose.trusted()` value is server-derived).
+- **XSS:** no `dangerouslySetInnerHTML`, and email HTML is fully escaped.
+- **SSRF and redirects:** no SSRF (one fixed outbound host, `redirect: "error"`), and no open redirect.
+- **Code safety:** no ReDoS-prone pattern on unbounded input, and no eval or deserialization of untrusted data.
+- **Secrets:** no secrets in the repository or its history (one deliberately fake test URI is allow-listed), and none reach the client.
+- **Logs:** log calls carry IDs and error names only. A planted-secret test scans real serialized log output across auth, identity, scan, alert and failure paths.
+- **Cookies:** the session cookie is `__Host-` over HTTPS, `HttpOnly`, `SameSite=Lax`, and gets a new token on sign-in.
+- **CSRF:** a Server Action replayed with a foreign `Origin` is refused by Next.js (E2E `csrf.spec.ts`).
+- **Headers:** CSP with a nonce, HSTS (production), `X-Frame-Options: DENY`, nosniff, Referrer-Policy, Permissions-Policy, COOP/CORP, no `X-Powered-By`, deny-all CSP on `/api/*`, and `/.well-known/security.txt`.
+
+**Dependencies:** `npm audit --omit=dev` reports 0 vulnerabilities. The 5 high findings in the dev-only lint chain are tracked in D-008.

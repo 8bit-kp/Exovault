@@ -76,7 +76,7 @@ export async function listTimeline(
     total,
     items: rows.map((row) => ({
       id: String(row._id),
-      sourceName: row.sourceName,
+      sourceName: row.isSensitiveSource ? "" : row.sourceName,
       sourceType: row.sourceType,
       severity: row.severity,
       breachDate: row.breachDate ? row.breachDate.toISOString() : null,

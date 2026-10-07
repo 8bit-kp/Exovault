@@ -1,5 +1,6 @@
 import "server-only";
 import { betterAuth } from "better-auth";
+import { APIError } from "better-auth/api";
 import { mongodbAdapter } from "better-auth/adapters/mongodb";
 import { nextCookies } from "better-auth/next-js";
 import { emailOTP } from "better-auth/plugins/email-otp";
@@ -19,6 +20,7 @@ import {
   verifyEmailMessage,
 } from "@/server/services/notification/auth-emails";
 import { sessionCookieConfig } from "./cookies";
+import { markVerifiedByMailboxProof } from "./signup-binding";
 
 /** Fire-and-forget email so response timing doesn't reveal whether an account exists. */
 function sendInBackground(promise: Promise<unknown>): void {
@@ -53,6 +55,8 @@ function createAuth() {
         await email().send(resetPasswordMessage(user.email, url));
       },
       onPasswordReset: async ({ user }) => {
+        // Using the emailed link proves mailbox control: verify the account and void pending binds (D-034).
+        await markVerifiedByMailboxProof(user.id);
         sendInBackground(
           email().send(passwordChangedMessage(user.email, `${env.APP_URL}/auth/forgot-password`)),
         );
@@ -68,6 +72,12 @@ function createAuth() {
 
     emailVerification: {
       autoSignInAfterVerification: true,
+      // An emailed code must never sign into an already-verified account without its password (D-034).
+      beforeEmailVerification: async (user) => {
+        if (user.emailVerified) {
+          throw new APIError("BAD_REQUEST", { code: "ALREADY_VERIFIED", message: "Already verified" });
+        }
+      },
       afterEmailVerification: async (user) => {
         await recordAuditEvent({ event: "EMAIL_VERIFIED", outcome: "success", userId: user.id });
       },

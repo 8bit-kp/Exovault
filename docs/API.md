@@ -1,6 +1,6 @@
 # API
 
-> Status: **Phase 10.** Describes what exists. Pattern (spec 12.2): request ID → authenticate → authorize (ownership in the query) → rate-limit → validate → service → typed response. Others' resources are **not found**, never forbidden.
+> Status: **Phase 11.** Describes what exists. Pattern (spec 12.2): request ID → authenticate → authorize (ownership in the query) → rate-limit → validate → service → typed response. Others' resources are **not found**, never forbidden.
 
 ## Route Handlers
 

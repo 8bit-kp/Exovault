@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: 2026-10-07 (end of Phase 10, M2 complete)_
+_Last updated: 2026-10-07 (end of Phase 11)_
 
 ## Phase 0: Repository audit (done)
 
@@ -207,6 +207,19 @@ Built and verified (D-033):
 
 **Known gaps / carried forward (M3+):** user-timezone display beyond alerts and the inbox (Phase 12), data export / account deletion workflow (spec 5.2), MFA, Dockerfiles (Phase 13), live HIBP key.
 
+## Phase 11: Security hardening (done)
+
+Review and fixes (SECURITY.md "Phase 11 security review", D-034, D-035):
+
+- [x] Three-part review (authz/IDOR, injection/output, secrets/logging/cookies/limits) plus headers checked against a running production build; 13 findings fixed (2 medium), 2 accepted as residual risks
+- [x] **Pre-account hijacking fixed:** email verification bound to the password-setting sign-up; set-password claim path; codes never sign into verified accounts
+- [x] Limits per target address and per email, reset-submit limit, reveal and unsubscribe caps, SSE stream cap + session re-check
+- [x] Breach pre-check before spending a reset token; 16-byte GCM tags; HTTPS-safe cookie clearing; sensitive names withheld from evidence links and list models; https-only evidence URLs; UUID-only request IDs; strict ObjectIds; production refuses test secrets
+- [x] `/.well-known/security.txt`, deny-all CSP on `/api/*`, gitleaks config
+- [x] Tests: account-takeover, abuse-limits, planted-secret log scan, hardening unit tests, CSRF E2E (foreign-Origin Server Action refused), pending-cookie cleared check on every E2E sign-up
+
+**Known gaps / carried forward:** user-timezone display beyond alerts (Phase 12), data export / account deletion workflow (spec 5.2), MFA, Dockerfiles (Phase 13), live HIBP key. The `security-review` skill couldn't run (it needs an `origin` remote); the manual three-part review replaced it.
+
 ## In progress
 
 None.
@@ -215,6 +228,6 @@ None.
 
 - **HIBP API key** (paid; Core 1 is enough for development). Needed only to run the live provider.
 
-## Next: Phase 11, security hardening (M3)
+## Next: Phase 12, UX polish
 
-A full review against Part 12: IDOR, auth bypass, XSS, CSRF, SSRF, injection, secret leakage, logging, rate-limit bypass, cookies, redirects, and headers verified against the running app. Plus `/.well-known/security.txt`, a log-scanning test for planted secrets, the `security-review` skill, fixes, and an updated THREAT-MODEL.
+Audit spacing, type, hierarchy, accessibility, mobile, states and motion across every page; show times in the user's timezone everywhere; remove generic patterns; screenshot review on desktop and mobile.

@@ -342,3 +342,59 @@ Format: **Context → Options → Decision → Consequences.** Newest last. Stat
 - **Consequences:**
   - Alerts are only as timely as the monitoring schedule plus one dispatch interval.
   - Everything outside the alerts, inbox and alert settings still shows UTC, clearly labelled. Showing the user's timezone everywhere is a Phase 12 item.
+
+## D-034 — Email verification is bound to the sign-up that set the password (2026-10-07)
+
+- **Context:** The Phase 11 review found **pre-account hijacking**:
+  1. An attacker signs up with a victim's address and a password they know. The account stays unverified.
+  2. When the victim signs up later, they get the generic response, click "resend", and enter the code.
+  3. That verifies the _attacker's_ account and signs the victim in. The attacker's password still works, so they can later read whatever the victim adds.
+
+  Related: a verified account could be signed into with an emailed code alone, with no password.
+
+- **Decision:**
+  - A new account gets a random **sign-up nonce**. Its keyed hash is stored in `pendingSignups` (1-hour TTL); the plaintext lives in the browser's sealed pending-verification cookie. A password sign-in on an unverified account (which proves the password) issues a fresh nonce.
+  - `verifyEmailCode` and `resendVerificationCode` act only when the nonce matches. Otherwise verify returns the same "invalid" result, and resend silently sends nothing.
+  - Signing up with an existing **unverified** address doesn't create, change or verify anything. The mailbox gets a **set-your-password link** instead of a code.
+  - Completing a password reset is mailbox proof: it marks the account verified, clears pending binds, and revokes all sessions. That replaces whatever password was set before, so the attacker is locked out.
+  - `beforeEmailVerification` refuses already-verified accounts, so an emailed code can never sign into one.
+  - Every sign-up branch runs a password hash, so timing doesn't reveal which branch ran. Responses stay identical (no enumeration).
+- **Consequences:**
+  - Someone who signs up on one device and verifies on another must sign in with their password on the second device first. That re-binds it and sends a fresh code.
+  - Proven by `tests/security/account-takeover.test.ts`, which walks through the full attack and the claim.
+
+## D-035 — Phase 11 hardening batch (2026-10-07)
+
+**Abuse and limits.** New limits (`config/rate-limits.ts`), all fail-closed:
+
+| Limit                                                | Where                                    | Value       |
+| ---------------------------------------------------- | ---------------------------------------- | ----------- |
+| Sign-up per **email**                                | sign-up                                  | 3 / hour    |
+| Ownership codes per **target address** (blind index) | identity add and resend                  | 5 / day     |
+| Code guesses per target address                      | identity verify                          | 10 / 15 min |
+| Reset submit per IP                                  | password reset                           | 10 / hour   |
+| Reveals per user                                     | identity reveal, sensitive-source reveal | 30 / hour   |
+| Unsubscribe per IP                                   | route + confirmation page                | 20 / hour   |
+| Scan streams opened per user                         | SSE                                      | 30 / 5 min  |
+
+**Fixes:**
+
+- **SSE:** the stream re-checks the session every 10 ticks, so revoked sessions stop receiving updates.
+- **Reset links:** a reset checks the new password against the breach list **before** Better Auth spends the single-use token. Previously a breached password burned the link.
+- **GCM tags:** both sealed tokens and field encryption require full 16-byte tags (`authTagLength: 16`). Truncated tags made unsubscribe-token forgery feasible.
+- **Cookie deletion over HTTPS:** the pending-verification cookie is now cleared with matching attributes. A `__Host-` cookie can't be deleted without `Secure`, so the old delete silently failed. It's also cleared on sign-out.
+- **Sensitive sources:** evidence links (which embed the breach name) are withheld for sensitive sources, and list and timeline view models carry no sensitive names.
+- **Evidence URLs:** only absolute `https:` URLs are kept at ingestion, and the schemas enforce it.
+- **Request IDs:** client-supplied `x-request-id` values are accepted only as UUIDs, and audit `requestId` is capped. Requests the proxy skips could otherwise inject values.
+- **ObjectIds:** parsing is strict and round-trips (`lib/db/object-id.ts`) everywhere.
+- **Scoping:** the cooldown helper is scoped by user.
+- **Logging:** the worker logs error names only, header-like keys are added to redaction, and scrubber input is capped.
+- **Production secrets:** production refuses all-zero keys and test/CI secrets unless `EXOVAULT_ALLOW_TEST_SECRETS=1`, which only CI sets.
+- **New endpoints and headers:** `/.well-known/security.txt` (RFC 9116), a deny-all CSP on `/api/*`, and a narrow gitleaks allowlist for one fake test URI.
+
+**Accepted residual risks** (documented in SECURITY.md):
+
+- **Targeted lockout:** the per-account sign-in limit enables lockout (5 bad passwords lock the owner out for 15 minutes). That's the trade-off for brute-force protection; a CAPTCHA step is the upgrade path.
+- **Spoofable per-IP limits** without a trusted proxy (D-021).
+- **Session tokens** are stored in plaintext by the library.
+- **Soft 404s** for cross-user URLs (D-025).

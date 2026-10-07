@@ -78,7 +78,7 @@ export async function signUpAction(_prev: FormState, formData: FormData): Promis
     }
     return { ...failure(result), values: { email: parsed.data.email } };
   }
-  await setPendingVerification(parsed.data.email);
+  await setPendingVerification(parsed.data.email, result.nonce ?? null);
   redirect(AUTH_ROUTES.verifyEmail);
 }
 
@@ -99,7 +99,7 @@ export async function signInAction(_prev: FormState, formData: FormData): Promis
     };
   }
   if (result.next === "verify-email") {
-    await setPendingVerification(parsed.data.email);
+    await setPendingVerification(parsed.data.email, result.nonce ?? null);
     redirect(AUTH_ROUTES.verifyEmail);
   }
   redirect(safeReturnTo(parsed.data.returnTo));
@@ -113,13 +113,16 @@ const codeSchema = z.object({
 });
 
 export async function verifyEmailAction(_prev: FormState, formData: FormData): Promise<FormState> {
-  const email = await getPendingVerification();
-  if (!email)
+  const pending = await getPendingVerification();
+  if (!pending)
     return { status: "error", message: "This verification session expired. Sign in to get a new code." };
   const parsed = codeSchema.safeParse({ code: formData.get("code") });
   if (!parsed.success) return { status: "error", fieldErrors: fieldErrors(parsed.error) };
 
-  const result = await account.verifyEmailCode({ email, code: parsed.data.code }, await getRequestContext());
+  const result = await account.verifyEmailCode(
+    { email: pending.email, code: parsed.data.code, nonce: pending.nonce },
+    await getRequestContext(),
+  );
   if (!result.ok) {
     return failure(result, {
       invalid: "That code isn't right. Check the latest email and try again.",
@@ -132,12 +135,12 @@ export async function verifyEmailAction(_prev: FormState, formData: FormData): P
 }
 
 export async function resendCodeAction(): Promise<FormState> {
-  const email = await getPendingVerification();
-  if (!email)
+  const pending = await getPendingVerification();
+  if (!pending)
     return { status: "error", message: "This verification session expired. Sign in to get a new code." };
-  const result = await account.resendVerificationCode({ email }, await getRequestContext());
+  const result = await account.resendVerificationCode(pending, await getRequestContext());
   if (!result.ok) return failure(result);
-  await setPendingVerification(email); // Extend the window alongside the new code.
+  await setPendingVerification(pending.email, pending.nonce); // Extend the window alongside the new code.
   return { status: "success", message: "We sent a new code. It replaces any earlier one." };
 }
 
@@ -177,6 +180,7 @@ export async function resetPasswordAction(_prev: FormState, formData: FormData):
 
 export async function signOutAction(): Promise<void> {
   const session = await getSession();
+  await clearPendingVerification();
   await account.signOut(await getRequestContext(), session?.user.id ?? null);
   redirect("/");
 }

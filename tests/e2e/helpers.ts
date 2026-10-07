@@ -33,6 +33,9 @@ export async function signUpAndVerify(page: Page, email: string) {
   await page.getByLabel("Verification code").fill(code);
   await page.getByRole("button", { name: "Verify email" }).click();
   await expect(page).toHaveURL(/\/onboarding$/, AFTER_SUBMIT);
+  // The pending-verification cookie must not outlive its purpose (D-035).
+  const cookies = await page.context().cookies();
+  expect(cookies.find((c) => c.name.endsWith("pending_verification"))).toBeUndefined();
 }
 
 export async function signUpToDashboard(page: Page, email: string) {

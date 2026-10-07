@@ -33,6 +33,8 @@ jobs:
       BLIND_INDEX_PEPPER: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
       AUTH_SECRET: ci-only-not-a-secret-ci-only-not-a-secret
       PASSWORD_BREACH_CHECK: "off"
+      # The E2E job runs a production build with the throwaway keys above (D-035).
+      EXOVAULT_ALLOW_TEST_SECRETS: "1"
     steps:
       - uses: actions/checkout@v4
         with:

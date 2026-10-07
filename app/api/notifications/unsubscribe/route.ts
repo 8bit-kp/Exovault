@@ -1,4 +1,6 @@
+import { getEnv } from "@/config/env";
 import { json } from "@/lib/http/responses";
+import { clientIpFrom } from "@/lib/security/client-ip";
 import { unsubscribeWithToken } from "@/server/services/notification/notification-service";
 
 /**
@@ -9,5 +11,6 @@ import { unsubscribeWithToken } from "@/server/services/notification/notificatio
  */
 export async function POST(request: Request) {
   const token = new URL(request.url).searchParams.get("token") ?? undefined;
-  return (await unsubscribeWithToken(token)) ? json({ ok: true }) : json({ error: "invalid_token" }, 400);
+  const ip = clientIpFrom(request.headers, getEnv().TRUSTED_PROXY_COUNT);
+  return (await unsubscribeWithToken(token, ip)) ? json({ ok: true }) : json({ error: "invalid_token" }, 400);
 }

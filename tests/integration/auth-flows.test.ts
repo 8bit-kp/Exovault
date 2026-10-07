@@ -22,21 +22,30 @@ setupAuthHarness();
 
 const PASSWORD = "correct horse battery staple";
 
+/** Sign up and return the browser's signup-binding nonce (D-034). */
+async function signUpBound(email: string, password = PASSWORD): Promise<string> {
+  const result = await signUp({ email, password }, ctx());
+  expect(result).toMatchObject({ ok: true });
+  const nonce = (result as { nonce?: string | null }).nonce;
+  if (!nonce) throw new Error("expected a signup nonce for a new account");
+  return nonce;
+}
+
 async function registeredAndVerified(email: string) {
-  expect(await signUp({ email, password: PASSWORD }, ctx())).toEqual({ ok: true });
+  const nonce = await signUpBound(email);
   await flushBackground();
-  expect(await verifyEmailCode({ email, code: latestCode(email) }, ctx())).toEqual({ ok: true });
+  expect(await verifyEmailCode({ email, code: latestCode(email), nonce }, ctx())).toEqual({ ok: true });
 }
 
 describe("sign-up and email verification", () => {
   it("creates an unverified account, emails a code, and verifies with it", async () => {
-    expect(await signUp({ email: "ana@example.com", password: PASSWORD }, ctx())).toEqual({ ok: true });
+    const nonce = await signUpBound("ana@example.com");
     await flushBackground();
     const user = await getAuthDb().collection("user").findOne({ email: "ana@example.com" });
     expect(user?.emailVerified).toBe(false);
 
     const code = latestCode("ana@example.com");
-    expect(await verifyEmailCode({ email: "ana@example.com", code }, ctx())).toEqual({ ok: true });
+    expect(await verifyEmailCode({ email: "ana@example.com", code, nonce }, ctx())).toEqual({ ok: true });
     const after = await getAuthDb().collection("user").findOne({ email: "ana@example.com" });
     expect(after?.emailVerified).toBe(true);
   });
@@ -51,27 +60,30 @@ describe("sign-up and email verification", () => {
   });
 
   it("accepts a code once only", async () => {
-    await signUp({ email: "ana@example.com", password: PASSWORD }, ctx());
+    const nonce = await signUpBound("ana@example.com");
     await flushBackground();
     const code = latestCode("ana@example.com");
-    expect((await verifyEmailCode({ email: "ana@example.com", code }, ctx())).ok).toBe(true);
-    expect((await verifyEmailCode({ email: "ana@example.com", code }, ctx())).ok).toBe(false);
+    expect((await verifyEmailCode({ email: "ana@example.com", code, nonce }, ctx())).ok).toBe(true);
+    expect((await verifyEmailCode({ email: "ana@example.com", code, nonce }, ctx())).ok).toBe(false);
   });
 
   it("burns the code after three wrong guesses", async () => {
-    await signUp({ email: "ana@example.com", password: PASSWORD }, ctx());
+    const nonce = await signUpBound("ana@example.com");
     await flushBackground();
     const code = latestCode("ana@example.com");
     const wrong = code === "000000" ? "111111" : "000000";
-    for (let i = 0; i < 3; i++) await verifyEmailCode({ email: "ana@example.com", code: wrong }, ctx());
-    expect(await verifyEmailCode({ email: "ana@example.com", code }, ctx())).toMatchObject({ ok: false });
+    for (let i = 0; i < 3; i++)
+      await verifyEmailCode({ email: "ana@example.com", code: wrong, nonce }, ctx());
+    expect(await verifyEmailCode({ email: "ana@example.com", code, nonce }, ctx())).toMatchObject({
+      ok: false,
+    });
   });
 
   it("gives the same answer for an existing address and emails the owner instead (no enumeration)", async () => {
     await registeredAndVerified("ana@example.com");
     outbox.clear();
     const second = await signUp({ email: "ana@example.com", password: "a different long password" }, ctx());
-    expect(second).toEqual({ ok: true });
+    expect(second).toEqual({ ok: true, nonce: null });
     await flushBackground();
     expect(outbox.outbox.map((m) => m.kind)).toEqual(["account-exists"]);
     expect(await getAuthDb().collection("user").countDocuments({ email: "ana@example.com" })).toBe(1);
@@ -107,7 +119,7 @@ describe("sign-in", () => {
     await signUp({ email: "ana@example.com", password: PASSWORD }, ctx());
     await flushBackground();
     outbox.clear();
-    expect(await signIn({ email: "ana@example.com", password: PASSWORD }, ctx())).toEqual({
+    expect(await signIn({ email: "ana@example.com", password: PASSWORD }, ctx())).toMatchObject({
       ok: true,
       next: "verify-email",
     });

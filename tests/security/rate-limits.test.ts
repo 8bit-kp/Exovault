@@ -46,10 +46,11 @@ describe("rate limits (spec 12.3)", () => {
   });
 
   it("limits verification resends to 3 an hour per account", async () => {
-    await signUp({ email: "ana@example.com", password: "a long enough password" }, ctx());
+    const up = await signUp({ email: "ana@example.com", password: "a long enough password" }, ctx());
+    const nonce = (up as { nonce?: string | null }).nonce;
     const results = [];
     for (let i = 0; i < 4; i++)
-      results.push(await resendVerificationCode({ email: "ana@example.com" }, ctx()));
+      results.push(await resendVerificationCode({ email: "ana@example.com", nonce }, ctx()));
     expect(results[3]).toMatchObject({ ok: false, reason: "rate_limited" });
   });
 

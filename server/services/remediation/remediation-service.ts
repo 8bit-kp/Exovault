@@ -18,6 +18,8 @@ import { RemediationAction } from "@/models/RemediationAction";
 import { getExposureProviders } from "@/server/providers/exposure/registry";
 import { attributionsFor } from "@/server/services/exposure/exposure-query";
 import { recomputeRiskScore } from "@/server/services/risk/risk-service";
+import { RATE_LIMITS } from "@/config/rate-limits";
+import { limit } from "@/lib/rate-limit";
 
 /**
  * Exposure detail and remediation (spec 13.6, 7.7). Every read and write is
@@ -104,7 +106,8 @@ export async function getExposureDetail(
     ),
     notDetected: NOTABLE_CATEGORIES.filter((c) => !row.exposedDataTypes.includes(c)),
     providers: row.providers.map((name) => ({ name, displayName: displayName(name) })),
-    evidenceReferences: row.evidenceReferences,
+    // Evidence URLs embed the breach name: withheld for sensitive sources (spec 2.3).
+    evidenceReferences: row.isSensitiveSource ? [] : row.evidenceReferences,
     attributions: attributionsFor(row.providers),
     identityMasked: identity?.valueMasked ?? "removed identity",
     isDemo: row.isDemo,
@@ -231,6 +234,8 @@ export async function revealSensitiveSource(
   const row = await findOwned(userId, exposureId);
   if (!row) return { ok: false, reason: "not_found" };
   if (row.isSensitiveSource) {
+    const budget = await limit(RATE_LIMITS.revealPerUser, userId).catch(() => null);
+    if (!budget?.allowed) return { ok: false, reason: "not_found" };
     await recordAuditEvent({
       event: "SENSITIVE_SOURCE_REVEALED",
       outcome: "success",

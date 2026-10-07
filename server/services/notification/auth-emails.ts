@@ -49,7 +49,7 @@ export function resetPasswordMessage(to: string, url: string): EmailMessage {
     subject: `Reset your ${brand.name} password`,
     ...layout(
       [
-        "Someone asked to reset the password for this account.",
+        "Someone asked to set a new password for this account. If you just tried to sign up with this address, this link finishes setting up your account.",
         "The link expires in 30 minutes and works once. Resetting signs you out everywhere.",
         "If you didn't ask for this, ignore this email; your password stays the same.",
       ],

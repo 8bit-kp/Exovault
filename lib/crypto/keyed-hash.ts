@@ -14,6 +14,7 @@ export const KEYED_HASH_PURPOSES = [
   "audit-ip",
   "identity-blind-index",
   "identity-verification-code",
+  "signup-nonce",
 ] as const;
 export type KeyedHashPurpose = (typeof KEYED_HASH_PURPOSES)[number];
 

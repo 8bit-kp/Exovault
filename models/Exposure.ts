@@ -43,7 +43,11 @@ const exposureSchema = new Schema(
       default: [],
       validate: (v: unknown[]) => v.length <= 20,
     },
-    evidenceReferences: { type: [String], default: [], validate: (v: unknown[]) => v.length <= 20 },
+    evidenceReferences: {
+      type: [String],
+      default: [],
+      validate: (v: string[]) => v.length <= 20 && v.every((url) => /^https:\/\/[^\s]{1,490}$/.test(url)),
+    },
 
     severity: { type: String, enum: EXPOSURE_SEVERITIES, required: true },
     severityReason: { type: String, required: true, maxlength: 300 },

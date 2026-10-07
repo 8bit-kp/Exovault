@@ -20,7 +20,7 @@ const auditLogSchema = new Schema(
     subjectHash: { type: String, default: null },
     /** Keyed hash of the client IP. */
     ipHash: { type: String, default: null },
-    requestId: { type: String, default: null },
+    requestId: { type: String, default: null, maxlength: 64 },
     /** Small, non-sensitive context, e.g. { reason: "rate_limited", rule: "sign-in:ip" }. */
     metadata: { type: Schema.Types.Mixed, default: undefined },
   },

@@ -15,9 +15,15 @@ function cookieName(): string {
   return `${sessionCookieConfig(getEnv().APP_URL).prefix}.pending_verification`;
 }
 
-export async function setPendingVerification(email: string): Promise<void> {
+export interface PendingVerification {
+  email: string;
+  /** Signup-binding nonce (D-034); null when this browser isn't bound to the account. */
+  nonce: string | null;
+}
+
+export async function setPendingVerification(email: string, nonce: string | null): Promise<void> {
   const { secure } = sessionCookieConfig(getEnv().APP_URL);
-  (await cookies()).set(cookieName(), seal(PURPOSE, { email }, TTL_SECONDS), {
+  (await cookies()).set(cookieName(), seal(PURPOSE, { email, nonce }, TTL_SECONDS), {
     httpOnly: true,
     secure,
     sameSite: "lax",
@@ -26,11 +32,19 @@ export async function setPendingVerification(email: string): Promise<void> {
   });
 }
 
-export async function getPendingVerification(): Promise<string | null> {
+export async function getPendingVerification(): Promise<PendingVerification | null> {
   const value = (await cookies()).get(cookieName())?.value;
-  return unseal<{ email: string }>(PURPOSE, value)?.email ?? null;
+  const payload = unseal<PendingVerification>(PURPOSE, value);
+  return payload && typeof payload.email === "string"
+    ? { email: payload.email, nonce: payload.nonce ?? null }
+    : null;
 }
 
+/**
+ * Clears with the same attributes it was set with: browsers ignore a
+ * `__Host-` Set-Cookie that lacks Secure, so a bare delete() would silently fail.
+ */
 export async function clearPendingVerification(): Promise<void> {
-  (await cookies()).delete(cookieName());
+  const { secure } = sessionCookieConfig(getEnv().APP_URL);
+  (await cookies()).set(cookieName(), "", { httpOnly: true, secure, sameSite: "lax", path: "/", maxAge: 0 });
 }

@@ -142,7 +142,7 @@ describe("locks, cooldown and idempotency", () => {
     const again = await startManualScan(who.userId, who.identityId, ctx);
     expect(again).toMatchObject({ ok: false, reason: "cooldown" });
     expect((again as { retryAfterSeconds: number }).retryAfterSeconds).toBeGreaterThan(14 * 60);
-    expect(await manualScanAvailableIn(who.identityId)).toBeGreaterThan(14 * 60);
+    expect(await manualScanAvailableIn(who.userId, who.identityId)).toBeGreaterThan(14 * 60);
     expect(
       await startManualScan(who.userId, who.identityId, ctx, new Date(Date.now() + 15 * 60_000 + 1000)),
     ).toMatchObject({ ok: true });

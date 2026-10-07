@@ -56,6 +56,19 @@ export interface EngineOptions {
   onProviderSettled?: (result: ProviderRunResult) => Promise<void> | void;
 }
 
+/**
+ * Evidence links are rendered as <a href>: only absolute https URLs survive,
+ * whatever a provider returns (no javascript:, data:, or relative URLs).
+ */
+export function safeEvidenceUrl(value: string | undefined): string[] {
+  if (!value || value.length > 500) return [];
+  try {
+    return new URL(value).protocol === "https:" ? [value] : [];
+  } catch {
+    return [];
+  }
+}
+
 export function toNormalizedExposure(
   provider: ExposureProvider,
   exposure: ProviderExposure,
@@ -80,7 +93,7 @@ export function toNormalizedExposure(
     exposedDataTypes,
     isSensitiveSource: exposure.isSensitiveSource,
     confidence: Math.min(1, Math.max(0, exposure.confidence)),
-    evidenceReferences: exposure.evidenceReference ? [exposure.evidenceReference] : [],
+    evidenceReferences: safeEvidenceUrl(exposure.evidenceReference),
     severity,
     severityReason: reason,
     discoveredAt: now,

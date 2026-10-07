@@ -48,7 +48,7 @@ export default async function OnboardingScan({ searchParams }: PageProps<"/onboa
         identityId={verified.id}
         flow="onboarding"
         label="Start first scan"
-        availableInSeconds={await manualScanAvailableIn(verified.id)}
+        availableInSeconds={await manualScanAvailableIn(user.id, verified.id)}
       />
     </OnboardingShell>
   );

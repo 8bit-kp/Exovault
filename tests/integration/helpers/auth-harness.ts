@@ -110,6 +110,7 @@ export function setupAuthHarness() {
       "remediationActions",
       "notifications",
       "notificationPreferences",
+      "pendingSignups",
     ]) {
       await db.collection(name).deleteMany({});
     }

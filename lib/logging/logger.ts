@@ -19,7 +19,11 @@ export const REDACTED_KEYS = [
   "secret",
   "apiKey",
   "authorization",
+  "Authorization",
   "cookie",
+  "Cookie",
+  "hibp-api-key",
+  "x-api-key",
   "set-cookie",
   "email",
   "identifier",
@@ -52,4 +56,20 @@ export function createLogger(
   );
 }
 
-export const logger = createLogger();
+/**
+ * Output goes through a swappable sink so tests can capture the exact
+ * serialized lines (after redaction) and scan them for planted secrets.
+ */
+let sink: DestinationStream | undefined;
+const destination: DestinationStream = {
+  write: (line: string) => {
+    (sink ?? process.stdout).write(line);
+  },
+};
+
+/** Test seam: capture log output. Pass undefined to restore stdout. */
+export function setLogSink(next: DestinationStream | undefined): void {
+  sink = next;
+}
+
+export const logger = createLogger({}, destination);

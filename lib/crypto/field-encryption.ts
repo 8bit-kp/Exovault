@@ -71,13 +71,16 @@ export function decryptField(
 ): string {
   if (value.v !== 1) throw new DecryptionError("unsupported envelope version");
   try {
+    const tag = Buffer.from(value.tag, "base64");
+    if (tag.length !== 16) throw new DecryptionError("invalid tag length");
     const decipher = createDecipheriv(
       "aes-256-gcm",
       keyBytes(keyring, value.keyId),
       Buffer.from(value.iv, "base64"),
+      { authTagLength: 16 },
     );
     decipher.setAAD(Buffer.from(aad, "utf8"));
-    decipher.setAuthTag(Buffer.from(value.tag, "base64"));
+    decipher.setAuthTag(tag);
     return Buffer.concat([
       decipher.update(Buffer.from(value.ciphertext, "base64")),
       decipher.final(),

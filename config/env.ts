@@ -104,6 +104,8 @@ const envSchema = z
     SMTP_PASSWORD: z.string().min(1).optional(),
     EMAIL_FROM: z.string().default("Exovault <no-reply@exovault.example>"),
 
+    // CI runs a production build with throwaway secrets; only CI sets this.
+    EXOVAULT_ALLOW_TEST_SECRETS: z.enum(["0", "1"]).default("0"),
     MAX_ACTIVE_IDENTITIES_PER_USER: z.coerce.number().int().min(1).max(50).default(1),
   })
   .superRefine((env, ctx) => {
@@ -120,6 +122,35 @@ const envSchema = z
         path: ["HIBP_API_KEY"],
         message: "is required when PROVIDER_MODE=live",
       });
+    }
+    // Production must never run with the throwaway keys used by tests and CI (D-035).
+    if (env.NODE_ENV === "production" && env.EXOVAULT_ALLOW_TEST_SECRETS !== "1") {
+      const weak = (value: string) => /^A+=*$/.test(value) || /test-only|ci-only/i.test(value);
+      const keys = [...env.IDENTIFIER_ENCRYPTION_KEYS.values()];
+      if (keys.some((k) => weak(k) || Buffer.from(k, "base64").every((b) => b === 0))) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["IDENTIFIER_ENCRYPTION_KEYS"],
+          message: "contains a test/CI key; generate real keys (npm run env:init)",
+        });
+      }
+      if (
+        weak(env.BLIND_INDEX_PEPPER) ||
+        Buffer.from(env.BLIND_INDEX_PEPPER, "base64").every((b) => b === 0)
+      ) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["BLIND_INDEX_PEPPER"],
+          message: "is a test/CI value; generate a real one",
+        });
+      }
+      if (weak(env.AUTH_SECRET)) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["AUTH_SECRET"],
+          message: "is a test/CI value; generate a real one",
+        });
+      }
     }
     const devDb = databaseNameOf(env.MONGODB_URI);
     const testDb = databaseNameOf(env.MONGODB_URI_TEST);

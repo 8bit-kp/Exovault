@@ -1,0 +1,15 @@
+# gitleaks configuration (CI secret scan, .github/workflows/ci.yml).
+# Extends the default rules; allow-lists only known, deliberately fake test values.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Fake credentials used to test URI/secret validation"
+paths = [
+  '''tests/unit/env\.test\.ts''',
+  '''tests/setup/test-env\.ts''',
+]
+regexes = [
+  # Reserved example domains only (RFC 2606); never a real host.
+  '''mongodb\+srv://app:s3cret@cluster0\.example\.net''',
+]

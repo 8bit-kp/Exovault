@@ -10,8 +10,8 @@ import { maskEmail } from "@/lib/utils/mask";
 export const metadata: Metadata = { title: "Verify your email" };
 
 export default async function VerifyEmailPage() {
-  const email = await getPendingVerification();
-  if (!email) {
+  const pending = await getPendingVerification();
+  if (!pending) {
     return (
       <AuthShell title="Verify your email">
         <Callout tone="info" title="There's no verification in progress on this device.">
@@ -28,8 +28,8 @@ export default async function VerifyEmailPage() {
       title="Check your inbox"
       description={
         <>
-          If <span className="font-mono text-fg">{maskEmail(email)}</span> is new to us, we&apos;ve sent it a
-          6-digit code. Enter it below to finish creating your account.
+          If <span className="font-mono text-fg">{maskEmail(pending.email)}</span> is new to us, we&apos;ve
+          sent it a 6-digit code. Enter it below to finish creating your account.
         </>
       }
       footer={
