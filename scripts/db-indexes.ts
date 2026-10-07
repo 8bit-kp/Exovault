@@ -10,6 +10,8 @@ import { AuditLog } from "@/models/AuditLog";
 import { Breach } from "@/models/Breach";
 import { Exposure } from "@/models/Exposure";
 import { ProviderState } from "@/models/ProviderState";
+import { RiskScore } from "@/models/RiskScore";
+import { Scan } from "@/models/Scan";
 import { Identity } from "@/models/Identity";
 import { IdentityQuota } from "@/models/IdentityQuota";
 import { IdentityVerification } from "@/models/IdentityVerification";
@@ -27,6 +29,8 @@ async function main() {
       Breach,
       Exposure,
       ProviderState,
+      Scan,
+      RiskScore,
     ]) {
       const dropped = await model.syncIndexes();
       console.log(

@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: 2026-10-07 (end of Phase 6)_
+_Last updated: 2026-10-07 (end of Phase 7)_
 
 ## Phase 0: Repository audit (done)
 
@@ -148,6 +148,23 @@ Built and verified (D-029):
 - Exposure detail pages + remediation checklist: Phase 8 (cards aren't links until then).
 - In-process queue needs a long-running server; serverless needs the M2 worker (D-029).
 
+## Phase 7: Dashboard (done)
+
+Built and verified (D-030, docs/RISK-SCORE.md):
+
+- [x] `calculateRiskScore`: pure, injectable `now`, explainable `factors[]`, methodology version; 22 unit tests including worked examples, bounds, clamping, 500-case monotonicity, order independence, diminishing returns, remediation/recency/detection/MFA effects, and factors summing to the score
+- [x] `RiskScore` snapshots: written in the scan's scoring step and on identity removal; current vs previous for direction of change
+- [x] `getRecommendedActions`: pure, prioritised, bounded, de-duplicated, never names sensitive sources; unit-tested
+- [x] Recent activity projected from the user's own audit events (no identifiers)
+- [x] Dashboard (spec 13.5): score with direction, band and disclaimer, "Why this score?", active-by-severity breakdown, monitoring Off, recommended actions, latest scan, recent exposures with attribution, recent activity, "Demo data" label; states for no identity / pending / unscanned / clean / everything handled
+- [x] Tests: integration (snapshots, clean = 0, identity removal, isolation, counts, ordering, activity projection); E2E (before and after the first scan, explainer, axe on both); visual check desktop + mobile
+
+**Known gaps / carried forward:**
+
+- Remediation checklist + status transitions that move the score: Phase 8.
+- Exposure detail pages (cards still not links): Phase 8.
+- Timeline page (spec 13.7) is still a placeholder; it's grouped/filtered history and lands with Phase 8/12 polish.
+
 ## In progress
 
 None.
@@ -156,6 +173,6 @@ None.
 
 - **HIBP API key** (paid; Core 1 is enough for development). Needed only to run the live provider.
 
-## Next: Phase 7, dashboard
+## Next: Phase 8, exposure details (completes M1)
 
-`calculateRiskScore` (pure, documented in RISK-SCORE.md, extensively tested) and `RiskScore` snapshots computed in the scan's scoring step; the dashboard with the score, direction and "Why this score?", severity breakdown, monitoring state, recent exposures, recommended actions, and recent activity (from the audit log); E2E.
+`/app/exposures/[id]` (source, severity and why, dates, confidence, exposed vs not-detected categories with the caveat, why it matters, sensitive-source reveal, evidence link, attribution), `RemediationAction` persistence behind the checklist, remediation state transitions (open → in progress → remediated / dismissed with reason, unit-tested), a score snapshot on every change, links from cards, and tests.

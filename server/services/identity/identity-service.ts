@@ -27,6 +27,7 @@ import {
   type IdentityRecord,
 } from "@/server/repositories/identity-repository";
 import { identityVerificationMessage } from "@/server/services/notification/auth-emails";
+import { recomputeRiskScore } from "@/server/services/risk/risk-service";
 import { IDENTITY_CODE_MAX_ATTEMPTS, IDENTITY_CODE_TTL_SECONDS } from "@/models/IdentityVerification";
 import type { IdentityView } from "@/components/identity/identity-card";
 
@@ -318,6 +319,8 @@ export async function removeIdentity(
 ): Promise<{ ok: true } | { ok: false; reason: "not_found" }> {
   if (!(await deleteIdentityForUser(actor.userId, identityId))) return { ok: false, reason: "not_found" };
   await releaseIdentitySlot(actor.userId);
+  // Its exposures are gone, so the score changes too.
+  await recomputeRiskScore(actor.userId, "identity_removed");
   await recordAuditEvent({
     event: "IDENTITY_REMOVED",
     outcome: "success",

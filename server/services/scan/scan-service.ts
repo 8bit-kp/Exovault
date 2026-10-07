@@ -35,6 +35,7 @@ import { outcomeOf } from "@/server/services/exposure/exposure-service";
 import { persistExposures } from "@/server/services/exposure/persistence";
 import type { RetryPolicy } from "@/server/services/exposure/resilience";
 import { getIdentity, withDecryptedIdentity } from "@/server/services/identity/identity-service";
+import { recomputeRiskScore } from "@/server/services/risk/risk-service";
 import { createInProcessQueue, type ScanQueue } from "./queue";
 
 /**
@@ -249,10 +250,11 @@ export async function processScan(scanId: string): Promise<void> {
       providerResults,
     });
 
-    // scoring: roll up active exposures by severity (the risk score joins this step in Phase 7).
+    // scoring: active exposures by severity + a new Exposure Risk Score snapshot for the user.
     if (!(await transitionScan(scan._id, "matching", "scoring"))) return;
     state = "scoring";
     const activeBySeverity = await activeCountsBySeverity(scan.userId, scan.identityId);
+    await recomputeRiskScore(scan.userId, "scan", { scanId });
 
     const summary = {
       new: diff.new.length,

@@ -257,3 +257,15 @@ Format: **Context → Options → Decision → Consequences.** Newest last. Stat
   - **Route:** `/app/scans/[id]` shows progress and results. It isn't in spec 13.3's route list; it's the natural home for a scan.
   - **Exposure links:** exposure cards render without links until detail pages exist (Phase 8).
 - **Consequences:** The in-process queue needs a long-running Node server (`next start`, container). On serverless the work could be cut off after the response, so deploying serverless needs M2's separate worker (DEPLOYMENT.md, Phase 13).
+
+## D-030 — Risk score design, snapshots, recommendations, activity (2026-10-07)
+
+- **Decision:**
+  - **Score:** a saturating score `100·(1−e^(−raw/45))` over severity weights with recency, remediation and detection multipliers, geometric diminishing returns (0.7) and three small compounding bonuses. The formula and every constant are in RISK-SCORE.md; property tests cover monotonicity.
+  - **Scope:** user-level (all identities), recomputed in each scan's `scoring` step and when an identity is removed. Phase 8 adds remediation changes.
+  - **Snapshots:** kept 12 months, matching scans.
+  - **Recommendations:** `getRecommendedActions` is pure, returns at most 5 actions, one per concern, most severe first, and never names a sensitive source.
+  - **Recent activity:** a projection of the user's own audit events, with descriptions built from counts and IDs, so no identifiers appear.
+- **Consequences:**
+  - The score moves with remediation (Phase 8 records a snapshot per change).
+  - MFA affects the score only when the user reports it, which isn't collected yet. "Unknown" is shown, not assumed.

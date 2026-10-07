@@ -2,7 +2,7 @@ import "server-only";
 import { Types } from "mongoose";
 import type { ExposureView } from "@/components/exposure/types";
 import { connectToDatabase } from "@/lib/db/mongoose";
-import { isActiveExposure } from "@/lib/domain/exposure";
+import { EXPOSURE_SEVERITIES, isActiveExposure, type ExposureSeverity } from "@/lib/domain/exposure";
 import { displayPriority, SEVERITY_RANK } from "@/lib/domain/severity";
 import { Exposure, type ExposureDoc } from "@/models/Exposure";
 import { Identity } from "@/models/Identity";
@@ -70,4 +70,25 @@ export function attributionsFor(providerNames: Iterable<string>): Array<{ name: 
     if (attribution && wanted.has(provider.getName())) seen.set(attribution.url, attribution);
   }
   return [...seen.values()];
+}
+
+/** Active exposures (spec 7.7) per severity, across all of the user's identities. */
+export async function activeSeverityCounts(userId: string): Promise<Record<ExposureSeverity, number>> {
+  await connectToDatabase();
+  const rows = await Exposure.aggregate<{ _id: ExposureSeverity; count: number }>([
+    {
+      $match: {
+        userId,
+        detectionState: { $ne: "no_longer_reported" },
+        remediationState: { $nin: ["remediated", "dismissed"] },
+      },
+    },
+    { $group: { _id: "$severity", count: { $sum: 1 } } },
+  ]);
+  const counts = Object.fromEntries(EXPOSURE_SEVERITIES.map((s) => [s, 0])) as Record<
+    ExposureSeverity,
+    number
+  >;
+  for (const row of rows) counts[row._id] = row.count;
+  return counts;
 }
