@@ -162,7 +162,12 @@ export default async function DashboardPage() {
               View all {exposures.length}
             </Link>
           </div>
-          <ExposureList label="Recent exposures" exposures={exposures.slice(0, 5)} empty={null} />
+          <ExposureList
+            label="Recent exposures"
+            exposures={exposures.slice(0, 5)}
+            empty={null}
+            hrefFor={(e) => `/app/exposures/${e.id}`}
+          />
           <SourceAttribution attributions={attributionsFor(exposures.flatMap((e) => e.providers))} />
         </section>
       ) : hasScanned && verified ? (

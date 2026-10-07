@@ -23,6 +23,7 @@ export default async function ExposuresPage() {
         action={exposures.some((e) => e.isDemo) ? <DemoDataLabel /> : undefined}
       />
       <ExposureList
+        hrefFor={(e) => `/app/exposures/${e.id}`}
         label="Exposures"
         exposures={exposures}
         empty={

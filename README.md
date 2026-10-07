@@ -2,7 +2,7 @@
 
 **A privacy-first exposure intelligence platform for individuals.** Exovault checks whether your _verified_ identifiers appear in legitimate breach and credential-exposure sources, and tells you what to do about it.
 
-> **Status: early development (Phase 7 of 13: dashboard).** Sign up, verify an address, scan it with live progress, and get a dashboard with an explainable Exposure Risk Score, recommendations and activity (demo providers by default, clearly labelled; HIBP with a key). Exposure details and remediation complete M1 in Phase 8. See [`docs/PROGRESS.md`](docs/PROGRESS.md).
+> **Status: M1 (MVP) complete, Phase 8 of 13.** Sign up, verify an address, scan it with live progress, get an explainable Exposure Risk Score, open each exposure, and work through a remediation checklist that lowers the score (demo providers by default, clearly labelled; HIBP with a key). Next: scheduled monitoring and notifications (M2). See [`docs/PROGRESS.md`](docs/PROGRESS.md).
 
 ## What it is not
 
@@ -36,4 +36,4 @@ npm run test:e2e          # Playwright vs a production build; starts Mailpit; us
 
 ## Documentation
 
-[Architecture](docs/ARCHITECTURE.md) · [Database](docs/DATABASE.md) · [Threat model](docs/THREAT-MODEL.md) · [Design system](docs/DESIGN-SYSTEM.md) · [Security](docs/SECURITY.md) · [API](docs/API.md) · [Exposure engine](docs/EXPOSURE-ENGINE.md) · [Risk score](docs/RISK-SCORE.md) · [Providers](docs/PROVIDERS.md) · [Privacy data model](docs/PRIVACY-DATA-MODEL.md) · [Decisions](docs/DECISIONS.md) · [Progress](docs/PROGRESS.md) · [Build spec](docs/MASTER-PROMPT.md)
+[Architecture](docs/ARCHITECTURE.md) · [Database](docs/DATABASE.md) · [Threat model](docs/THREAT-MODEL.md) · [Design system](docs/DESIGN-SYSTEM.md) · [Security](docs/SECURITY.md) · [API](docs/API.md) · [Exposure engine](docs/EXPOSURE-ENGINE.md) · [Risk score](docs/RISK-SCORE.md) · [User flows](docs/USER-FLOWS.md) · [Testing](docs/TESTING.md) · [Deployment](docs/DEPLOYMENT.md) · [Providers](docs/PROVIDERS.md) · [Privacy data model](docs/PRIVACY-DATA-MODEL.md) · [Decisions](docs/DECISIONS.md) · [Progress](docs/PROGRESS.md) · [Build spec](docs/MASTER-PROMPT.md)

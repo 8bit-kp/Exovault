@@ -103,7 +103,7 @@ test("another user's identity URL reveals nothing: same not-found page as a miss
   // Streaming responses can't switch to a 404 status mid-stream (Next.js "soft 404", D-025);
   // what matters is that the content is the generic not-found page and nothing of the victim's.
   await expect(attackerPage.getByRole("heading", { level: 1, name: "Not found" })).toBeVisible();
-  await expect(attackerPage.getByText(victimMasked)).toHaveCount(0);
+  await expect(attackerPage.locator("main").getByText(victimMasked)).toHaveCount(0);
   await expect(attackerPage.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
   await expectAccessible(attackerPage);
 

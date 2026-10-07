@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: 2026-10-07 (end of Phase 7)_
+_Last updated: 2026-10-07 (end of Phase 8, M1 complete)_
 
 ## Phase 0: Repository audit (done)
 
@@ -165,6 +165,20 @@ Built and verified (D-030, docs/RISK-SCORE.md):
 - Exposure detail pages (cards still not links): Phase 8.
 - Timeline page (spec 13.7) is still a placeholder; it's grouped/filtered history and lands with Phase 8/12 polish.
 
+## Phase 8: Exposure details (done). M1 complete.
+
+Built and verified (D-031):
+
+- [x] `/app/exposures/[id]`: headline (severity + rule), what to do, why it matters, what happened (dates, masked address, sources, confidence), exposed vs not-detected (with caveat), technical details, evidence link, attribution, "Demo data"
+- [x] Remediation state machine (spec 7.7, unit-tested), per-exposure checklist from exposed categories, `remediationActions` persistence, checklist-driven state, mark fixed / dismiss with reason / reopen, compare-and-set
+- [x] A score snapshot and an audit event on every change; scans never touch remediation; cascade delete with the identity
+- [x] Sensitive sources hidden everywhere until an explicit, audited reveal
+- [x] Exposure cards link to details (dashboard, exposures list, scan and onboarding results)
+- [x] Tests: unit (transitions, checklist, derived state); integration (detail, hidden sensitive name + audited reveal, checklist → states → falling score, untick, idempotency, foreign items, dismiss reasons, invalid transitions, rescan preserves remediation, cascade, IDOR); E2E (checklist → In progress → Remediated → score falls, reload persistence, sensitive reveal, dismiss, cross-user URL)
+- [x] Docs: TESTING.md, USER-FLOWS.md, DEPLOYMENT.md (first version), D-031, DATABASE, API, SECURITY, PRIVACY-DATA-MODEL
+
+**Known gaps / carried forward (M2+):** scheduled monitoring and the worker (Phase 9), notifications (Phase 10), timeline page (spec 13.7, an M2 item), data export / account deletion workflow (spec 5.2), MFA, live HIBP key.
+
 ## In progress
 
 None.
@@ -173,6 +187,6 @@ None.
 
 - **HIBP API key** (paid; Core 1 is enough for development). Needed only to run the live provider.
 
-## Next: Phase 8, exposure details (completes M1)
+## Next: Phase 9, monitoring (M2)
 
-`/app/exposures/[id]` (source, severity and why, dates, confidence, exposed vs not-detected categories with the caveat, why it matters, sensitive-source reveal, evidence link, attribution), `RemediationAction` persistence behind the checklist, remediation state transitions (open → in progress → remediated / dismissed with reason, unit-tested), a score snapshot on every change, links from cards, and tests.
+A separate BullMQ worker (`workers/index.ts`, its own tsconfig) behind the existing `ScanQueue` interface; scheduled scans per identity (6h / 12h / daily) with jitter and the DB as source of truth (reconcile on boot); retries, dead letters, graceful shutdown, concurrency limits; enable/disable monitoring (cancels jobs); the timeline page; worker tests against real Redis.

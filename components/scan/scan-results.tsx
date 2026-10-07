@@ -80,7 +80,12 @@ export function ScanResults({
       ) : (
         <>
           <SeverityBreakdown counts={scan.summary.activeBySeverity} />
-          <ExposureList label="Exposures found" exposures={exposures} empty={null} />
+          <ExposureList
+            label="Exposures found"
+            exposures={exposures}
+            empty={null}
+            hrefFor={(e) => `/app/exposures/${e.id}`}
+          />
         </>
       )}
 

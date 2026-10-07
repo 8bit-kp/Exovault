@@ -90,6 +90,7 @@ function hashByte(value: string): number {
  *  - contains "fail"               → both sources fail (scan FAILED)
  *  - contains "partial"            → second source fails (scan PARTIAL)
  *  - contains "slow"               → first source times out
+ *  - contains "sensitive"          → includes a sensitive (dating-site) source
  *  - anything else                 → a hash-chosen subset of the fictional catalog
  */
 export function createDemoProviders(): ExposureProvider[] {
@@ -102,6 +103,7 @@ export function createDemoProviders(): ExposureProvider[] {
       if (name.includes("clean")) return ok([]);
       if (name.includes("fail")) return { status: "error", category: "unavailable", retryable: true };
       if (name.includes("slow")) return createMockProvider("slow-timeout").search(identifier, ctx);
+      if (name.includes("sensitive")) return ok([MOCK_BREACHES.northwind, MOCK_BREACHES.lunaDating]);
       const byte = hashByte(identifier.normalizedValue);
       // Always at least two, deterministic per address.
       const count = 2 + (byte % (entries.length - 1));

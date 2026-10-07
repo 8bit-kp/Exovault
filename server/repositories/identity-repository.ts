@@ -4,6 +4,7 @@ import { connectToDatabase } from "@/lib/db/mongoose";
 import type { IdentifierType } from "@/lib/domain/exposure";
 import type { EncryptedValue } from "@/lib/crypto/field-encryption";
 import { Exposure } from "@/models/Exposure";
+import { RemediationAction } from "@/models/RemediationAction";
 import { Identity, type IdentityDoc } from "@/models/Identity";
 import { IdentityQuota } from "@/models/IdentityQuota";
 import { IdentityVerification } from "@/models/IdentityVerification";
@@ -109,6 +110,7 @@ export async function deleteIdentityForUser(userId: string, identityId: string):
   await Promise.all([
     IdentityVerification.deleteMany({ identityId: _id }),
     Exposure.deleteMany({ identityId: _id, userId }),
+    RemediationAction.deleteMany({ identityId: _id, userId }),
   ]);
   return true;
 }

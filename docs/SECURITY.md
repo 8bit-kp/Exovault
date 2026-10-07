@@ -1,6 +1,6 @@
 # Security
 
-> Status: describes controls that exist in code as of **Phase 6**. Planned controls are listed in [THREAT-MODEL.md](THREAT-MODEL.md) with their phase. Not a substitute for an independent review.
+> Status: describes controls that exist in code as of **Phase 8 (M1)**. Planned controls are listed in [THREAT-MODEL.md](THREAT-MODEL.md) with their phase. Not a substitute for an independent review.
 
 ## Authentication (Better Auth 1.7.7, D-002, D-018, D-019)
 
@@ -36,6 +36,15 @@
 | Abuse / quota protection | one active scan per identity (unique partial index), 15-min manual cooldown, 3 retries/h, provider budgets, circuit breaker | `scan.test.ts` (incl. concurrent starts)  |
 | Progress endpoints       | session required; scans looked up by `(userId, scanId)`; 401 / 404; GET only; no identifier in payloads                     | `scan.spec.ts` (E2E)                      |
 | No double processing     | compare-and-set `queued → running`                                                                                          | `scan.test.ts`                            |
+
+## Exposures and remediation (D-031)
+
+| Control                       | Implementation                                                                                        | Verified by                            |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| Ownership on every read/write | exposures, checklist items and status changes queried by `(userId, exposureId)`; not found otherwise  | `remediation.test.ts` IDOR matrix; E2E |
+| Sensitive sources (spec 2.3)  | hidden in lists, emails, page titles and the detail view model; reveal is explicit and audited        | `remediation.test.ts`, E2E             |
+| Input                         | checklist key must belong to the exposure; status from a fixed enum; dismiss reason from a fixed list | `remediation.test.ts`                  |
+| No raw breach data            | only categories are stored and shown; evidence links point at the provider's public page              | design + `exposure-engine.test.ts`     |
 
 ## Rate limits (spec 12.3, D-020)
 

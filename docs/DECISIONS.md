@@ -269,3 +269,17 @@ Format: **Context → Options → Decision → Consequences.** Newest last. Stat
 - **Consequences:**
   - The score moves with remediation (Phase 8 records a snapshot per change).
   - MFA affects the score only when the user reports it, which isn't collected yet. "Unknown" is shown, not assumed.
+
+## D-031 — Remediation: checklist-driven state, explicit overrides (2026-10-07)
+
+- **Context:** Spec 13.6 wants a checkable list that "feeds the risk score and the remediation state". Spec 7.7 defines open → in progress → remediated | dismissed.
+- **Decision:**
+  - **Checklist:** generated per exposure from its data categories and source type (`getRemediationChecklist`, pure, stable keys). Each ticked item is a `remediationActions` row, unique on (exposure, item).
+  - **State follows the checklist:** none ticked = open, some = in progress, all = remediated. Unticking moves a remediated exposure back to in progress. A **dismissed** exposure stays dismissed until it's reopened.
+  - **Explicit overrides:** "Mark as fixed", "Dismiss" (a reason from a fixed list is required) and "Reopen", validated against the transition table (unit-tested).
+  - **Atomicity:** state changes are compare-and-set on the current state, retried once after a concurrent change.
+  - **Side effects:** every change stores a risk-score snapshot (`reason: "remediation"`) and a `REMEDIATION_UPDATED` audit event.
+  - **Scans never touch remediation state** (tested).
+  - **Sensitive sources:** the name is withheld from the detail view model and the page title until "Reveal" (audited, `SENSITIVE_SOURCE_REVEALED`).
+  - **Demo mode:** an address containing `sensitive` deterministically includes the fictional sensitive source, for demos and E2E.
+- **Consequences:** Remediation is reversible and auditable, and the score reflects it immediately. "Dismissed" keeps half weight in the score, because nothing was fixed (RISK-SCORE.md).
