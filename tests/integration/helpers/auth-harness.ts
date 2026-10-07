@@ -11,6 +11,7 @@ import { Breach } from "@/models/Breach";
 import { Exposure } from "@/models/Exposure";
 import { Identity } from "@/models/Identity";
 import { ProviderState } from "@/models/ProviderState";
+import { Scan } from "@/models/Scan";
 import { IdentityQuota } from "@/models/IdentityQuota";
 import { IdentityVerification } from "@/models/IdentityVerification";
 import type { RequestContext } from "@/server/services/account/auth-service";
@@ -67,7 +68,7 @@ export function setupAuthHarness() {
     // Production indexes (npm run db:indexes) must coexist with the auth library's own writes.
     await ensureAuthIndexes(getAuthDb());
     await Promise.all(
-      [Identity, IdentityVerification, IdentityQuota, Exposure, Breach, ProviderState].map((model) =>
+      [Identity, IdentityVerification, IdentityQuota, Exposure, Breach, ProviderState, Scan].map((model) =>
         model.syncIndexes(),
       ),
     );
@@ -90,6 +91,7 @@ export function setupAuthHarness() {
       "exposures",
       "breaches",
       "providerStates",
+      "scans",
     ]) {
       await db.collection(name).deleteMany({});
     }

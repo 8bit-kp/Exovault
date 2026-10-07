@@ -35,4 +35,6 @@ export const RATE_LIMITS = {
     windowMs: HOUR,
     failClosed: true,
   },
+  // "Retry failed source" on a partial scan; separate from the 15-min manual cooldown (D-029).
+  scanRetryPerIdentity: { name: "scan-retry:identity", limit: 3, windowMs: HOUR, failClosed: true },
 } as const satisfies Record<string, RateLimitRule>;

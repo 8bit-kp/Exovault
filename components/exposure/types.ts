@@ -29,4 +29,8 @@ export interface ExposureView {
   sensitive: boolean;
   /** Masked identifier, e.g. k****n@example.com. Never the plaintext value. */
   identityMasked: string;
+  /** From demo providers only: must be labelled "Demo data" (spec 4.3). */
+  isDemo: boolean;
+  /** Provider IDs that reported it (for attribution, e.g. HIBP's CC BY licence). */
+  providers: string[];
 }

@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: 2026-10-06 (end of Phase 5)_
+_Last updated: 2026-10-07 (end of Phase 6)_
 
 ## Phase 0: Repository audit (done)
 
@@ -128,6 +128,26 @@ Built and verified (docs/EXPOSURE-ENGINE.md, docs/PROVIDERS.md, decisions D-026 
 - Live HIBP needs the owner's paid key (D-012).
 - Risk score (`calculateRiskScore`) and `RiskScore` snapshots are Phase 7.
 
+## Phase 6: Scanning (done)
+
+Built and verified (D-029):
+
+- [x] `Scan` model: persisted states with history, per-provider sub-results written as each source settles, summary, failure reason, 12-month TTL
+- [x] Compare-and-set transitions over an explicit state machine (`lib/domain/scan.ts`); each state brackets real work
+- [x] One active scan per identity (unique partial index), duplicate and concurrent starts return the running scan, interrupted-scan recovery
+- [x] 15-minute manual cooldown (failed scans don't count); "Retry failed source" (only the failed providers, linked, 3/h)
+- [x] `ScanQueue` interface + in-process adapter; processor is safe to run twice
+- [x] SSE progress endpoint + JSON fallback (session + ownership; 401/404); client EventSource with backoff polling fallback and cleanup
+- [x] UI: onboarding first scan → live progress → results (`/onboarding/results`), `/app/scans/[id]`, dashboard latest-scan panel (run / cooldown / watch), recent exposures, real `/app/exposures` list, identity page scan panel; "Demo data" labels; HIBP attribution component; honest clean / partial / failed states
+- [x] Tests: integration (full lifecycle and step history, clean, partial, failed, cooldown, failed-scan cooldown, reuse, concurrent starts, double processing, stale recovery, retry, retry limits, IDOR, no identifier in scans, audit); E2E (first-scan journey through demo providers, clean wording, partial + retry, endpoint authorization)
+- [x] Docs: API.md (new), DECISIONS D-029, DATABASE, ARCHITECTURE, SECURITY
+
+**Known gaps / carried forward:**
+
+- Risk score, "Why this score?", recommendations, recent activity: Phase 7.
+- Exposure detail pages + remediation checklist: Phase 8 (cards aren't links until then).
+- In-process queue needs a long-running server; serverless needs the M2 worker (D-029).
+
 ## In progress
 
 None.
@@ -136,6 +156,6 @@ None.
 
 - **HIBP API key** (paid; Core 1 is enough for development). Needed only to run the live provider.
 
-## Next: Phase 6, scanning
+## Next: Phase 7, dashboard
 
-Build the `Scan` model (persisted states `queued → running → normalizing → matching → scoring → completed | partial | failed`, compare-and-set transitions, per-provider sub-results), a `ScanQueue` interface with an in-process adapter, one active scan per identity (unique partial index), a 15-minute manual cooldown, SSE progress from persisted state, retry of failed sources, the onboarding scan/results pages, and integration tests.
+`calculateRiskScore` (pure, documented in RISK-SCORE.md, extensively tested) and `RiskScore` snapshots computed in the scan's scoring step; the dashboard with the score, direction and "Why this score?", severity breakdown, monitoring state, recent exposures, recommended actions, and recent activity (from the audit log); E2E.

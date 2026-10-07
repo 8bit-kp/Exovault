@@ -52,6 +52,8 @@ export interface EngineOptions {
   now?: () => Date;
   policy?: RetryPolicy;
   deps?: ResilienceDeps;
+  /** Called as each provider settles, so scans can persist per-source progress as it happens. */
+  onProviderSettled?: (result: ProviderRunResult) => Promise<void> | void;
 }
 
 export function toNormalizedExposure(
@@ -169,13 +171,25 @@ async function runProvider(
   return { run: finish({ state: "ok", count: exposures.length, attempts }), exposures };
 }
 
+/** Providers only: per-provider results and their normalized (not yet deduplicated) reports. */
+export async function runProviders(
+  identifier: SearchIdentifier,
+  options: EngineOptions,
+): Promise<EngineResult> {
+  const outcomes = await Promise.all(
+    options.providers.map(async (p) => {
+      const outcome = await runProvider(p, identifier, options);
+      await options.onProviderSettled?.(outcome.run);
+      return outcome;
+    }),
+  );
+  return { providerResults: outcomes.map((o) => o.run), exposures: outcomes.flatMap((o) => o.exposures) };
+}
+
 export async function searchExposures(
   identifier: SearchIdentifier,
   options: EngineOptions,
 ): Promise<EngineResult> {
-  const outcomes = await Promise.all(options.providers.map((p) => runProvider(p, identifier, options)));
-  return {
-    providerResults: outcomes.map((o) => o.run),
-    exposures: deduplicateExposures(outcomes.flatMap((o) => o.exposures)),
-  };
+  const { providerResults, exposures } = await runProviders(identifier, options);
+  return { providerResults, exposures: deduplicateExposures(exposures) };
 }

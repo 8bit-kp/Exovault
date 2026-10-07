@@ -28,7 +28,8 @@ export function groupExposuresByMonth(exposures: ExposureView[]): TimelineGroup[
 
 interface ExposureTimelineProps {
   exposures: ExposureView[];
-  hrefFor: (exposure: ExposureView) => string;
+  /** Builds the detail URL. Omit for non-interactive cards. */
+  hrefFor?: (exposure: ExposureView) => string;
   empty: ReactNode;
   className?: string;
 }
@@ -50,7 +51,7 @@ export function ExposureTimeline({ exposures, hrefFor, empty, className }: Expos
                   aria-hidden
                   className="absolute top-6 -left-[23.5px] size-2 rounded-full border border-line-strong bg-surface-3"
                 />
-                <ExposureCard exposure={exposure} href={hrefFor(exposure)} headingLevel="h4" />
+                <ExposureCard exposure={exposure} href={hrefFor?.(exposure)} headingLevel="h4" />
               </li>
             ))}
           </ol>

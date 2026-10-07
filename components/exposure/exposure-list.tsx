@@ -6,7 +6,8 @@ import type { ExposureView } from "./types";
 interface ExposureListProps {
   exposures: ExposureView[];
   /** Builds the detail URL. IDs only: identifiers never appear in our URLs (spec 5.1). */
-  hrefFor: (exposure: ExposureView) => string;
+  /** Builds the detail URL. Omit for non-interactive cards. */
+  hrefFor?: (exposure: ExposureView) => string;
   /** Rendered when the list is empty; callers supply context-specific copy. */
   empty: ReactNode;
   /** Accessible name of the list. */
@@ -21,7 +22,7 @@ export function ExposureList({ exposures, hrefFor, empty, label, className }: Ex
     <ul aria-label={label} className={cn("space-y-2", className)}>
       {exposures.map((exposure) => (
         <li key={exposure.id}>
-          <ExposureCard exposure={exposure} href={hrefFor(exposure)} />
+          <ExposureCard exposure={exposure} href={hrefFor?.(exposure)} />
         </li>
       ))}
     </ul>

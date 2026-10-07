@@ -1,6 +1,6 @@
 # Security
 
-> Status: describes controls that exist in code as of **Phase 4**. Planned controls are listed in [THREAT-MODEL.md](THREAT-MODEL.md) with their phase. Not a substitute for an independent review.
+> Status: describes controls that exist in code as of **Phase 6**. Planned controls are listed in [THREAT-MODEL.md](THREAT-MODEL.md) with their phase. Not a substitute for an independent review.
 
 ## Authentication (Better Auth 1.7.7, D-002, D-018, D-019)
 
@@ -27,6 +27,15 @@
 | Abuse limits               | 5 identity adds / day / user; 10 code guesses / 15 min / user; 3 resends / hour / identity; active-identity cap enforced atomically                              | `identity.test.ts` (incl. concurrent adds)         |
 | Authorization              | every query scoped by `userId`; others' identities are indistinguishable from missing ones (D-025)                                                               | `identity-idor.test.ts`, E2E                       |
 | Reveal                     | explicit button, audited (`IDENTITY_REVEALED`), auto-hides after 30 s                                                                                            | `identity.test.ts`, E2E                            |
+
+## Scanning (D-029)
+
+| Control                  | Implementation                                                                                                              | Verified by                               |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| Only verified identities | `withDecryptedIdentity` refuses pending identities; decryption happens inside the processor only                            | `scan.test.ts`, `exposure-engine.test.ts` |
+| Abuse / quota protection | one active scan per identity (unique partial index), 15-min manual cooldown, 3 retries/h, provider budgets, circuit breaker | `scan.test.ts` (incl. concurrent starts)  |
+| Progress endpoints       | session required; scans looked up by `(userId, scanId)`; 401 / 404; GET only; no identifier in payloads                     | `scan.spec.ts` (E2E)                      |
+| No double processing     | compare-and-set `queued → running`                                                                                          | `scan.test.ts`                            |
 
 ## Rate limits (spec 12.3, D-020)
 

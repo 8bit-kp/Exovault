@@ -1,6 +1,6 @@
 # Architecture
 
-> Status: **Phase 5.** Built: the exposure engine (§4), identities (encrypted storage, blind index, masking, ownership verification, onboarding; §6). Also built: the UI layer ([DESIGN-SYSTEM.md](DESIGN-SYSTEM.md)), `proxy.ts` (CSP, request ID, coarse `/app` redirect), and authentication ([SECURITY.md](SECURITY.md)): Server Actions → `server/services/account` → Better Auth in-process, Redis rate limits, audit log. Each section says whether it is **built** or **designed**. Nothing marked _designed_ exists in code yet.
+> Status: **Phase 6.** Built: scanning (§5: persisted states, lock, cooldown, SSE progress), the exposure engine (§4), identities (encrypted storage, blind index, masking, ownership verification, onboarding; §6). Also built: the UI layer ([DESIGN-SYSTEM.md](DESIGN-SYSTEM.md)), `proxy.ts` (CSP, request ID, coarse `/app` redirect), and authentication ([SECURITY.md](SECURITY.md)): Server Actions → `server/services/account` → Better Auth in-process, Redis rate limits, audit log. Each section says whether it is **built** or **designed**. Nothing marked _designed_ exists in code yet.
 
 ## 1. System overview
 
@@ -62,7 +62,7 @@ Identity ─decrypt in memory─▶ normalize ─▶ validate
 
 Contract: `server/providers/exposure/interface.ts` (**built**). Adding a provider means adding a folder and registering it. The engine doesn't change.
 
-## 5. Scan lifecycle (designed; spec Part 8)
+## 5. Scan lifecycle (**built**, Phase 6; spec Part 8, D-029)
 
 Persisted states `queued → running → normalizing → matching → scoring → completed | partial | failed` (`SCAN_STATES` in `lib/domain/exposure.ts`, **built**). Transitions use compare-and-set (`findOneAndUpdate({_id, state: from}, {state: to})`), so a second worker can't advance a scan twice. Without transactions (D-004), each step is resumable.
 

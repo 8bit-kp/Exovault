@@ -10,6 +10,8 @@ import { MonitoringStatus } from "@/components/monitoring/monitoring-status";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { requireUser } from "@/lib/auth/session";
 import { getIdentity } from "@/server/services/identity/identity-service";
+import { LatestScanPanel } from "@/components/scan/latest-scan-panel";
+import { getLatestScan, manualScanAvailableIn } from "@/server/services/scan/scan-service";
 
 export const metadata: Metadata = { title: "Identity" };
 
@@ -46,12 +48,19 @@ export default async function IdentityDetailPage({ params }: PageProps<"/app/ide
           </PanelBody>
         </Panel>
       ) : (
-        <Panel>
-          <PanelHeader title="Monitoring" />
-          <PanelBody>
-            <MonitoringStatus state="off" lastScanAt={identity.lastScanAt} nextScanAt={null} />
-          </PanelBody>
-        </Panel>
+        <>
+          <LatestScanPanel
+            identity={identity}
+            scan={await getLatestScan(user.id, identity.id)}
+            availableInSeconds={await manualScanAvailableIn(identity.id)}
+          />
+          <Panel>
+            <PanelHeader title="Monitoring" />
+            <PanelBody>
+              <MonitoringStatus state="off" lastScanAt={identity.lastScanAt} nextScanAt={null} />
+            </PanelBody>
+          </Panel>
+        </>
       )}
       <Panel>
         <PanelHeader

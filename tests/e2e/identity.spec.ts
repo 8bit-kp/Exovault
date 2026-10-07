@@ -17,13 +17,16 @@ test("onboarding: use the sign-in email → verified without a second code → d
 
   await page.getByRole("button", { name: "Use my sign-in email" }).click();
   await expect(page).toHaveURL(/\/onboarding\/scan$/, AFTER_SUBMIT);
-  await expect(page.getByRole("heading", { name: "Address verified" })).toBeVisible();
-  // Honest: no scan has run.
-  await expect(page.getByText("Scanning isn't available yet.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Ready for your first scan" })).toBeVisible();
   await expectAccessible(page);
 
-  await page.getByRole("link", { name: "Go to dashboard" }).click();
-  await expect(page.getByText(/^e\*\*\*\*.*@example\.test$/).first()).toBeVisible();
+  await page.goto("/app/dashboard");
+  await expect(
+    page
+      .locator("main")
+      .getByText(/^e\*\*\*\*.*@example\.test$/)
+      .first(),
+  ).toBeVisible();
   await expect(page.getByText("Verified").first()).toBeVisible();
 });
 

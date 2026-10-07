@@ -13,7 +13,8 @@ const MAX_TAGS = 4;
 
 interface ExposureCardProps {
   exposure: ExposureView;
-  href: string;
+  /** Detail page. Omit to render a non-interactive card. */
+  href?: string;
   /** Heading level inside the surrounding list/section. */
   headingLevel?: "h2" | "h3" | "h4";
   className?: string;
@@ -31,7 +32,7 @@ export function ExposureCard({ exposure, href, headingLevel: Heading = "h3", cla
     <article
       className={cn(
         "group relative flex gap-4 rounded-md border border-line bg-surface-1 px-4 py-4 transition-colors duration-(--duration-fast)",
-        "hover:border-line-strong hover:bg-surface-2 focus-within:border-line-strong",
+        href && "hover:border-line-strong hover:bg-surface-2 focus-within:border-line-strong",
         className,
       )}
       data-severity={exposure.severity}
@@ -51,13 +52,17 @@ export function ExposureCard({ exposure, href, headingLevel: Heading = "h3", cla
 
         <Heading className="flex items-center gap-2 text-base font-semibold text-fg">
           {exposure.sensitive ? <EyeOff aria-hidden className="size-4 text-fg-subtle" /> : null}
-          {/* The stretched link makes the whole card the hit target with one accessible name. */}
-          <Link
-            href={href}
-            className="truncate after:absolute after:inset-0 after:rounded-md focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-offset-2 focus-visible:after:outline-focus"
-          >
-            {sourceLabel}
-          </Link>
+          {href ? (
+            // The stretched link makes the whole card the hit target with one accessible name.
+            <Link
+              href={href}
+              className="truncate after:absolute after:inset-0 after:rounded-md focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-offset-2 focus-visible:after:outline-focus"
+            >
+              {sourceLabel}
+            </Link>
+          ) : (
+            <span className="truncate">{sourceLabel}</span>
+          )}
         </Heading>
 
         <ul className="flex flex-wrap gap-1.5" aria-label="Exposed data">
@@ -100,10 +105,12 @@ export function ExposureCard({ exposure, href, headingLevel: Heading = "h3", cla
           ) : null}
         </dl>
       </div>
-      <ChevronRight
-        aria-hidden
-        className="size-4 shrink-0 self-center text-fg-subtle transition-transform duration-(--duration-fast) group-hover:translate-x-0.5 group-hover:text-fg"
-      />
+      {href ? (
+        <ChevronRight
+          aria-hidden
+          className="size-4 shrink-0 self-center text-fg-subtle transition-transform duration-(--duration-fast) group-hover:translate-x-0.5 group-hover:text-fg"
+        />
+      ) : null}
     </article>
   );
 }

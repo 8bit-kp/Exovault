@@ -236,3 +236,24 @@ Format: **Context → Options → Decision → Consequences.** Newest last. Stat
   - **Scripts:** they run with `tsx --conditions=react-server`, so modules guarded by `server-only` load.
   - **NFC correction:** spec 7.4 requires NFC and an IDNA/punycode domain. Phase 4's normalizer used NFKC with no IDNA, so it was corrected. Blind indexes for addresses whose NFC and NFKC forms differ would change; nothing deployed is affected.
 - **Consequences:** Demo results are reproducible across machines. Tests and the seed never touch a live API.
+
+## D-029 — Scan execution in M1: in-process queue, real step boundaries, SSE (2026-10-07)
+
+- **Context:** Spec Part 8 asks for persisted, never-faked states, one active scan per identity, a 15-minute manual cooldown, SSE progress, and a queue abstraction (in-process allowed in M1).
+- **Decision:**
+  - **Queue:** `ScanQueue` with an in-process adapter (concurrency 4). Starting a scan validates, takes the lock, and enqueues, then returns immediately. BullMQ replaces the adapter in M2 behind the same interface.
+  - **Step boundaries:** each persisted state brackets real work.
+    - `running`: provider calls. Each source's result is written as it settles.
+    - `normalizing`: dedupe.
+    - `matching`: match and persist.
+    - `scoring`: the active-by-severity rollup now; the risk score joins it in Phase 7.
+
+    Transitions are compare-and-set, so a second processor can't run a scan twice (tested).
+
+  - **Lock:** a unique partial index on `active: true`. The flag is set while the scan isn't terminal and unset at the terminal state. A duplicate or concurrent start returns the scan already in progress.
+  - **Interrupted scans:** an active scan with no progress for 2 minutes (e.g. after a restart) is failed as `interrupted` on the next start, releasing the lock.
+  - **Cooldown:** 15 minutes per identity for manual scans. Failed scans don't count. "Retry failed source" isn't a manual scan: it rescans only the failed providers, is linked via `retryOfScanId`, and is limited to 3 per hour per identity.
+  - **Progress:** `GET /api/scans/:id/events` (SSE) reads the persisted scan once a second on the server and emits only on change. It ends at a terminal state, at 5 minutes, or on disconnect. The client falls back to `GET /api/scans/:id` with exponential backoff (1 s up to 10 s). Both endpoints check the session and ownership: 401 for anonymous users, 404 for other users' scans.
+  - **Route:** `/app/scans/[id]` shows progress and results. It isn't in spec 13.3's route list; it's the natural home for a scan.
+  - **Exposure links:** exposure cards render without links until detail pages exist (Phase 8).
+- **Consequences:** The in-process queue needs a long-running Node server (`next start`, container). On serverless the work could be cut off after the response, so deploying serverless needs M2's separate worker (DEPLOYMENT.md, Phase 13).

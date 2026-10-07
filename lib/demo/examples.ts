@@ -18,6 +18,8 @@ export const EXAMPLE_EXPOSURES: ExposureView[] = [
     remediationState: "open",
     sensitive: false,
     identityMasked: "a****x@example.com",
+    isDemo: true,
+    providers: ["demo-breach-index"],
   },
   {
     id: "ex-2",
@@ -31,6 +33,8 @@ export const EXAMPLE_EXPOSURES: ExposureView[] = [
     remediationState: "in_progress",
     sensitive: false,
     identityMasked: "a****x@example.com",
+    isDemo: true,
+    providers: ["demo-breach-index"],
   },
   {
     id: "ex-3",
@@ -44,6 +48,8 @@ export const EXAMPLE_EXPOSURES: ExposureView[] = [
     remediationState: "open",
     sensitive: true,
     identityMasked: "a****x@example.com",
+    isDemo: true,
+    providers: ["demo-breach-index"],
   },
   {
     id: "ex-4",
@@ -57,5 +63,7 @@ export const EXAMPLE_EXPOSURES: ExposureView[] = [
     remediationState: "remediated",
     sensitive: false,
     identityMasked: "a****x@example.com",
+    isDemo: true,
+    providers: ["demo-breach-index"],
   },
 ];

@@ -6,6 +6,12 @@ import { PageHeader } from "@/components/layout/page-header";
 import { MonitoringStatus } from "@/components/monitoring/monitoring-status";
 import { ButtonLink } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
+import { DemoDataLabel } from "@/components/ui/demo-data-label";
+import { ExposureList } from "@/components/exposure/exposure-list";
+import { SourceAttribution } from "@/components/exposure/source-attribution";
+import { LatestScanPanel } from "@/components/scan/latest-scan-panel";
+import { attributionsFor, listExposuresForUser } from "@/server/services/exposure/exposure-query";
+import { getLatestScan, manualScanAvailableIn } from "@/server/services/scan/scan-service";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { EmptyState } from "@/components/ui/states";
 import { requireUser } from "@/lib/auth/session";
@@ -13,12 +19,13 @@ import { listIdentities } from "@/server/services/identity/identity-service";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
-/** Real identity state; no score or exposures until scanning exists (Phases 5–7). */
+/** Real identity and scan state. The risk score and full breakdown arrive in Phase 7. */
 export default async function DashboardPage() {
   const user = await requireUser();
   const identities = await listIdentities(user.id);
   const verified = identities.find((i) => i.verification === "verified");
   const pending = identities.find((i) => i.verification === "pending");
+  const exposures = await listExposuresForUser(user.id);
 
   return (
     <div className="space-y-8">
@@ -48,9 +55,24 @@ export default async function DashboardPage() {
       ) : null}
 
       {verified ? (
-        <Callout tone="info" title="Scanning isn't available yet.">
-          {verified.masked} is verified. The scan engine is being built now; nothing has been checked so far.
-        </Callout>
+        <LatestScanPanel
+          identity={verified}
+          scan={await getLatestScan(user.id, verified.id)}
+          availableInSeconds={await manualScanAvailableIn(verified.id)}
+        />
+      ) : null}
+
+      {exposures.length > 0 ? (
+        <section aria-labelledby="recent-heading" className="space-y-3">
+          <div className="flex items-baseline justify-between gap-4">
+            <h2 id="recent-heading" className="text-base font-semibold text-fg">
+              Recent exposures
+            </h2>
+            {exposures.some((e) => e.isDemo) ? <DemoDataLabel /> : null}
+          </div>
+          <ExposureList label="Recent exposures" exposures={exposures.slice(0, 5)} empty={null} />
+          <SourceAttribution attributions={attributionsFor(exposures.flatMap((e) => e.providers))} />
+        </section>
       ) : null}
 
       <div className="grid gap-4 lg:grid-cols-2">

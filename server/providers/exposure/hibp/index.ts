@@ -89,6 +89,7 @@ export function createHibpProvider(options: HibpOptions): ExposureProvider {
   return {
     getName: () => HIBP_NAME,
     getCapabilities: () => ({
+      displayName: "Have I Been Pwned",
       identifierTypes: ["email"],
       rateLimit: { requests: options.requestsPerMinute ?? 10, windowMs: 60_000 },
       attribution: { name: "Have I Been Pwned", url: "https://haveibeenpwned.com" },

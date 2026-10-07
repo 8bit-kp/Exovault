@@ -28,10 +28,11 @@ const ok = (exposures: ProviderExposure[]): ProviderSearchResult => ({
   checkedAt: new Date(),
 });
 
-function base(name: string, search: ExposureProvider["search"]): ExposureProvider {
+function base(name: string, search: ExposureProvider["search"], displayName?: string): ExposureProvider {
   return {
     getName: () => name,
     getCapabilities: () => ({
+      displayName,
       identifierTypes: ["email"],
       rateLimit: { requests: 600, windowMs: 60_000 },
       isDemo: true,
@@ -94,24 +95,32 @@ function hashByte(value: string): number {
 export function createDemoProviders(): ExposureProvider[] {
   const local = (identifier: SearchIdentifier) => identifier.normalizedValue.split("@")[0];
   const entries = Object.values(MOCK_BREACHES);
-  const primary = base("demo-breach-index", async (identifier, ctx) => {
-    const name = local(identifier);
-    if (name.includes("clean")) return ok([]);
-    if (name.includes("fail")) return { status: "error", category: "unavailable", retryable: true };
-    if (name.includes("slow")) return createMockProvider("slow-timeout").search(identifier, ctx);
-    const byte = hashByte(identifier.normalizedValue);
-    // Always at least two, deterministic per address.
-    const count = 2 + (byte % (entries.length - 1));
-    const start = byte % entries.length;
-    return ok(Array.from({ length: count }, (_, i) => entries[(start + i) % entries.length]));
-  });
-  const secondary = base("demo-credential-watch", async (identifier) => {
-    const name = local(identifier);
-    if (name.includes("clean")) return ok([]);
-    if (name.includes("fail") || name.includes("partial")) {
-      return { status: "error", category: "unavailable", retryable: true };
-    }
-    return ok(hashByte(identifier.normalizedValue) % 3 === 0 ? [] : [MOCK_CONTOSO_FROM_SECOND_PROVIDER]);
-  });
+  const primary = base(
+    "demo-breach-index",
+    async (identifier, ctx) => {
+      const name = local(identifier);
+      if (name.includes("clean")) return ok([]);
+      if (name.includes("fail")) return { status: "error", category: "unavailable", retryable: true };
+      if (name.includes("slow")) return createMockProvider("slow-timeout").search(identifier, ctx);
+      const byte = hashByte(identifier.normalizedValue);
+      // Always at least two, deterministic per address.
+      const count = 2 + (byte % (entries.length - 1));
+      const start = byte % entries.length;
+      return ok(Array.from({ length: count }, (_, i) => entries[(start + i) % entries.length]));
+    },
+    "Demo breach index",
+  );
+  const secondary = base(
+    "demo-credential-watch",
+    async (identifier) => {
+      const name = local(identifier);
+      if (name.includes("clean")) return ok([]);
+      if (name.includes("fail") || name.includes("partial")) {
+        return { status: "error", category: "unavailable", retryable: true };
+      }
+      return ok(hashByte(identifier.normalizedValue) % 3 === 0 ? [] : [MOCK_CONTOSO_FROM_SECOND_PROVIDER]);
+    },
+    "Demo credential watch",
+  );
   return [primary, secondary];
 }

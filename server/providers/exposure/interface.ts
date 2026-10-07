@@ -17,6 +17,8 @@ export type RateLimitSpec = {
 };
 
 export type ProviderCapabilities = {
+  /** Human-readable source name for the UI, e.g. "Have I Been Pwned". */
+  displayName?: string;
   identifierTypes: readonly IdentifierType[];
   rateLimit: RateLimitSpec;
   /** Required credit wherever this provider's data is shown (e.g. HIBP, CC BY 4.0). */
