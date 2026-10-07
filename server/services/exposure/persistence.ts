@@ -1,7 +1,7 @@
 import { Types } from "mongoose";
 import { connectToDatabase } from "@/lib/db/mongoose";
 import type { DetectionState } from "@/lib/domain/exposure";
-import { SEVERITY_METHODOLOGY_VERSION } from "@/lib/domain/severity";
+import { SEVERITY_METHODOLOGY_VERSION, SEVERITY_RANK } from "@/lib/domain/severity";
 import { Breach } from "@/models/Breach";
 import { Exposure, type ExposureDoc } from "@/models/Exposure";
 import { isSameIncident, mergeExposures } from "./dedupe";
@@ -19,6 +19,8 @@ import type { NormalizedExposure } from "./types";
 export interface ExposureDiff {
   new: string[];
   changed: string[];
+  /** Subset of `changed` whose severity went up: the material changes that may alert (D-033). */
+  escalated: string[];
   existing: string[];
   noLongerReported: string[];
 }
@@ -110,7 +112,7 @@ export async function persistExposures(input: PersistInput): Promise<ExposureDif
   await connectToDatabase();
   const now = input.now ?? new Date();
   const identityId = new Types.ObjectId(input.identityId);
-  const diff: ExposureDiff = { new: [], changed: [], existing: [], noLongerReported: [] };
+  const diff: ExposureDiff = { new: [], changed: [], escalated: [], existing: [], noLongerReported: [] };
   const demoProviders = new Set(input.providerResults.filter((r) => r.isDemo).map((r) => r.provider));
   const isDemo = (e: NormalizedExposure) => e.providers.every((p) => demoProviders.has(p));
 
@@ -146,6 +148,8 @@ export async function persistExposures(input: PersistInput): Promise<ExposureDif
         },
       );
       diff[grew ? "changed" : "existing"].push(String(match._id));
+      if (grew && SEVERITY_RANK[merged.severity] > SEVERITY_RANK[match.severity])
+        diff.escalated.push(String(match._id));
       continue;
     }
 

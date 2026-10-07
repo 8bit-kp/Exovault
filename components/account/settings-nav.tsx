@@ -1,9 +1,10 @@
 import Link from "next/link";
 
-export function SettingsNav({ current }: { current: "profile" | "security" }) {
+export function SettingsNav({ current }: { current: "profile" | "security" | "notifications" }) {
   const items = [
     { key: "profile", href: "/app/settings/profile", label: "Profile" },
     { key: "security", href: "/app/settings/security", label: "Security" },
+    { key: "notifications", href: "/app/settings/notifications", label: "Notifications" },
   ] as const;
   return (
     <nav aria-label="Settings sections" className="mt-2">

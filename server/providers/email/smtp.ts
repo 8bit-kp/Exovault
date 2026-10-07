@@ -30,7 +30,7 @@ export function smtpEmailProvider(config: SmtpConfig): EmailProvider {
         subject: message.subject,
         text: message.text,
         html: message.html,
-        headers: { "X-Exovault-Kind": message.kind },
+        headers: { ...message.headers, "X-Exovault-Kind": message.kind },
       });
     },
   };

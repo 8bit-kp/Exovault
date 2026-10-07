@@ -1,6 +1,6 @@
 # Deployment
 
-> Status: **Phase 9.** Not yet deployed anywhere; this describes what the code needs. It gets finalised and verified in Phase 13.
+> Status: **Phase 10.** Not yet deployed anywhere; this describes what the code needs. It gets finalised and verified in Phase 13.
 
 ## Topology (M1)
 

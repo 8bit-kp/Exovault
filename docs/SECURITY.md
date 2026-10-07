@@ -1,6 +1,6 @@
 # Security
 
-> Status: describes controls that exist in code as of **Phase 9**. Planned controls are listed in [THREAT-MODEL.md](THREAT-MODEL.md) with their phase. Not a substitute for an independent review.
+> Status: describes controls that exist in code as of **Phase 10 (M2)**. Planned controls are listed in [THREAT-MODEL.md](THREAT-MODEL.md) with their phase. Not a substitute for an independent review.
 
 ## Authentication (Better Auth 1.7.7, D-002, D-018, D-019)
 
@@ -55,6 +55,17 @@
 | Only verified, owned identities | enable checks ownership + verification; the scheduler re-checks both               | `worker.test.ts`              |
 | Monitoring IDOR                 | enable/disable/read scoped by `userId`                                             | `worker.test.ts`              |
 | URL filters (timeline)          | strict enum/pattern validation; injection-shaped values dropped                    | `dashboard-data.test.ts`, E2E |
+
+## Alerts (D-033)
+
+| Control                        | Implementation                                                                                         | Verified by                  |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------ | ---------------------------- |
+| No identifiers in subjects     | fixed subjects; bodies show masked identity; sensitive sources never named                             | `notifications.test.ts`      |
+| No duplicate alerts            | unique dedupe key; compare-and-set dispatch claims                                                     | `notifications.test.ts`      |
+| Respect for the user's choices | preferences re-checked at send time; quiet hours; digest; one-click unsubscribe (RFC 8058)             | `notifications.test.ts`, E2E |
+| Unsubscribe token              | sealed AES-GCM, purpose-bound, 90 days; only disables alert email; confirmation page never acts on GET | `notifications.test.ts`, E2E |
+| Inbox                          | scoped by `userId`                                                                                     | `notifications.test.ts`      |
+| No email content stored        | rendered at send time from IDs                                                                         | design                       |
 
 ## Rate limits (spec 12.3, D-020)
 

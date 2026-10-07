@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: 2026-10-07 (end of Phase 9)_
+_Last updated: 2026-10-07 (end of Phase 10, M2 complete)_
 
 ## Phase 0: Repository audit (done)
 
@@ -193,6 +193,20 @@ Built and verified (D-032):
 
 **Known gaps / carried forward:** email notifications + preferences + idempotent alerts (Phase 10). Dockerfiles for web and worker (Phase 13). Data export / account deletion, MFA, live HIBP key.
 
+## Phase 10: Notifications (done). M2 complete.
+
+Built and verified (D-033):
+
+- [x] `NotificationProvider` abstraction (email first, over `EmailProvider`); alert and digest templates (masked identity, sensitive sources unnamed, no identifiers in subjects, deep links, RFC 8058 unsubscribe headers)
+- [x] Alerts from scheduled scans for NEW and escalated exposures; dedupe key (identity + fingerprint + channel + event), idempotent creation
+- [x] Preferences: email on/off, minimum severity, immediate / daily digest, quiet hours (cross-midnight), IANA timezone; re-checked at send time
+- [x] Worker dispatch: compare-and-set claims, one email per user per run, retries with backoff then failed, stale-claim recovery (at-least-once)
+- [x] `/app/notifications` inbox (status explained per alert, mark all read), `/app/settings/notifications`, public unsubscribe page + one-click POST route
+- [x] Layering guard: ESLint forbids UI component imports in server/worker code (after a real worker crash); timezone picker with modern IANA names
+- [x] Tests: unit (dedupe, material change, suppression, quiet hours incl. timezone, digest timing, timezone list); integration (14 notification tests incl. concurrency and real rendering); E2E (preferences, inbox, unsubscribe page + one-click endpoint); axe found and fixed a colour-only link
+
+**Known gaps / carried forward (M3+):** user-timezone display beyond alerts and the inbox (Phase 12), data export / account deletion workflow (spec 5.2), MFA, Dockerfiles (Phase 13), live HIBP key.
+
 ## In progress
 
 None.
@@ -201,6 +215,6 @@ None.
 
 - **HIBP API key** (paid; Core 1 is enough for development). Needed only to run the live provider.
 
-## Next: Phase 10, notifications (completes M2)
+## Next: Phase 11, security hardening (M3)
 
-`NotificationProvider` abstraction over the existing `EmailProvider`. Notify only for NEW or materially CHANGED exposures, with dedupe key `identityId + fingerprint + channel` (unique index; never re-notify). Preferences: channel on/off, minimum severity, immediate vs digest, quiet hours, timezone. Email content per spec (masked identity, source omitted if sensitive, preferences/unsubscribe link). `/app/notifications` and `/app/settings/notifications`, plus tests.
+A full review against Part 12: IDOR, auth bypass, XSS, CSRF, SSRF, injection, secret leakage, logging, rate-limit bypass, cookies, redirects, and headers verified against the running app. Plus `/.well-known/security.txt`, a log-scanning test for planted secrets, the `security-review` skill, fixes, and an updated THREAT-MODEL.

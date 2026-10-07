@@ -1,6 +1,6 @@
 # Testing
 
-> Status: **Phase 9.** Every suite below runs locally and in CI. Automated tests use deterministic fixtures and mock providers only: no live breach APIs and no real third-party addresses.
+> Status: **Phase 10 (M2).** Every suite below runs locally and in CI. Automated tests use deterministic fixtures and mock providers only: no live breach APIs and no real third-party addresses.
 
 ## Suites
 
@@ -56,6 +56,16 @@ Isolation: tests set their own env (`tests/setup/test-env.ts`) and never read `.
 - Disabled, unverified and removed identities are never scheduled.
 - Disabling cancels queued scans; degraded state; monitoring IDOR.
 
+**Notifications** (`notifications.test.ts`)
+
+- New exposures alert once, to the account email, with the masked identity, app links, and sensitive sources hidden.
+- No repeats across later scans; escalation alerts once; non-escalating changes stay silent; manual scans don't alert.
+- Email off (even after creation); quiet hours hold then deliver; digest = one email.
+- Strict preference validation.
+- Concurrent dispatchers send each alert exactly once; retries then fail after 3.
+- Real rendering: no identifier or source in the subject, RFC 8058 headers.
+- Unsubscribe tokens (valid, forged, missing); inbox scoping; 90-day TTL.
+
 **Security** (`tests/security`, `*-idor`, and IDOR blocks inside integration files)
 
 - **IDOR matrix:** another user's identities, scans, exposures, remediation, and sensitive-source reveal all return "not found".
@@ -77,4 +87,4 @@ Isolation: tests set their own env (`tests/setup/test-env.ts`) and never read `.
 
 - **Load sensitivity:** E2E journeys hash passwords (scrypt), so files with heavy auth run their tests in order, with generous post-submit timeouts. Locally, 4 workers run; in CI, 2.
 - **Per-test client IP:** each test sends its own `X-Forwarded-For`, simulating one trusted proxy (`TRUSTED_PROXY_COUNT=1`), so parallel tests don't share per-IP rate limits. A dedicated test proves the limit still triggers.
-- **Not yet covered:** notifications (Phase 10), and data export and deletion (not built yet).
+- **Not yet covered:** a live E2E of an alert email through Mailpit. That needs a scheduled scan to fire inside a test, so integration covers it with the real email renderer instead. Data export and deletion aren't built yet.

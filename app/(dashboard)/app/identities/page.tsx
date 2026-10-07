@@ -53,7 +53,7 @@ export default async function IdentitiesPage() {
           address,{" "}
           <Link
             href={`/app/identities/${identities[0]?.id ?? ""}`}
-            className="text-accent underline-offset-4 hover:underline"
+            className="text-accent underline underline-offset-4"
           >
             remove the current one
           </Link>{" "}

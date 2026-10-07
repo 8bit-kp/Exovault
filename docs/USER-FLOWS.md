@@ -1,6 +1,6 @@
 # User flows
 
-> Status: **end of M1 (Phase 8).** The flows that exist today, with the routes they use. Every step has one primary action (spec 13.1).
+> Status: **end of M2 (Phase 10).** The flows that exist today, with the routes they use. Every step has one primary action (spec 13.1).
 
 ## 1. First run (spec 13.2)
 
@@ -48,10 +48,19 @@ From the dashboard or `/app/identities/[id]`: **Scan again** → `/app/scans/[id
 - **Cooldown:** 15 minutes per identity; failed scans don't count.
 - **Partial result:** "N of M sources responded. Results may be incomplete." → **Retry failed source** reruns only the failed sources (3 per hour).
 
-## 5. Account and identities
+## 5. Monitoring and alerts
+
+1. `/app/monitoring`: turn monitoring on (every 6h, 12h or daily) or off. Off cancels scheduled scans that haven't started.
+2. The worker runs scheduled scans. New exposures, and known ones that got more serious, create alerts.
+3. Alerts are emailed to the sign-in address, either immediately or in a daily 08:00 summary, held during quiet hours, and filtered by minimum severity (`/app/settings/notifications`).
+4. `/app/notifications` lists every alert and what happened to it: emailed, scheduled, or not emailed and why.
+5. Each email has "Stop alert emails": a confirmation page, plus RFC 8058 one-click for mail apps.
+
+## 6. Account and identities
 
 - `/app/identities`: add an identity (limit 1 by default).
 - `/app/identities/[id]`: reveal the full address (audited, auto-hides after 30 s), verify, resend the code, remove (with confirmation; deletes its exposures and progress).
+- `/app/timeline`: every exposure grouped by month, with filters (severity, status, source, identity, months).
 - `/app/settings/security`: list sessions (browser only, no IP), sign out one session or all others.
 - `/auth/forgot-password` → emailed link → `/auth/reset-password`, which signs you out everywhere.
 

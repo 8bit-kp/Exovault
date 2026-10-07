@@ -9,6 +9,8 @@ export interface EmailMessage {
   html: string;
   /** Category for logs and metrics. Never the recipient. */
   kind: EmailKind;
+  /** Extra headers, e.g. List-Unsubscribe (RFC 8058). */
+  headers?: Record<string, string>;
 }
 
 export const EMAIL_KINDS = [
@@ -17,6 +19,8 @@ export const EMAIL_KINDS = [
   "account-exists",
   "password-changed",
   "identity-verification",
+  "exposure-alert",
+  "exposure-digest",
 ] as const;
 export type EmailKind = (typeof EMAIL_KINDS)[number];
 

@@ -9,6 +9,8 @@ import { ensureAuthIndexes } from "@/lib/db/auth-indexes";
 import { AuditLog } from "@/models/AuditLog";
 import { Breach } from "@/models/Breach";
 import { Exposure } from "@/models/Exposure";
+import { Notification } from "@/models/Notification";
+import { NotificationPreference } from "@/models/NotificationPreference";
 import { ProviderState } from "@/models/ProviderState";
 import { RemediationAction } from "@/models/RemediationAction";
 import { RiskScore } from "@/models/RiskScore";
@@ -33,6 +35,8 @@ async function main() {
       Scan,
       RiskScore,
       RemediationAction,
+      Notification,
+      NotificationPreference,
     ]) {
       const dropped = await model.syncIndexes();
       console.log(

@@ -36,6 +36,7 @@ import { persistExposures } from "@/server/services/exposure/persistence";
 import type { RetryPolicy } from "@/server/services/exposure/resilience";
 import { getIdentity, withDecryptedIdentity } from "@/server/services/identity/identity-service";
 import { recomputeRiskScore } from "@/server/services/risk/risk-service";
+import { createNotificationsForScan } from "@/server/services/notification/notification-service";
 import { getEnv } from "@/config/env";
 import { createBullmqScanQueue } from "./bullmq-queue";
 import { createInProcessQueue, type ScanQueue } from "./queue";
@@ -311,6 +312,23 @@ export async function processScan(scanId: string): Promise<void> {
       userId: scan.userId,
       metadata: { scanId, outcome, new: summary.new, changed: summary.changed },
     });
+    // Alerts only for monitoring: a manual scan's results are already on the user's screen (D-033).
+    if (scan.trigger === "scheduled" && (diff.new.length > 0 || diff.escalated.length > 0)) {
+      try {
+        await createNotificationsForScan({
+          userId: scan.userId,
+          identityId: scan.identityId.toHexString(),
+          scanId,
+          newExposureIds: diff.new,
+          escalatedExposureIds: diff.escalated,
+        });
+      } catch (error) {
+        logger.error(
+          { scanId, err: error instanceof Error ? error.name : "unknown" },
+          "creating alerts failed",
+        );
+      }
+    }
     if (summary.new > 0) {
       await recordAuditEvent({
         event: "EXPOSURE_DETECTED",

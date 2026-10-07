@@ -11,6 +11,8 @@ import { Breach } from "@/models/Breach";
 import { Exposure } from "@/models/Exposure";
 import { Identity } from "@/models/Identity";
 import { ProviderState } from "@/models/ProviderState";
+import { Notification } from "@/models/Notification";
+import { NotificationPreference } from "@/models/NotificationPreference";
 import { RemediationAction } from "@/models/RemediationAction";
 import { RiskScore } from "@/models/RiskScore";
 import { Scan } from "@/models/Scan";
@@ -80,6 +82,8 @@ export function setupAuthHarness() {
         Scan,
         RiskScore,
         RemediationAction,
+        Notification,
+        NotificationPreference,
       ].map((model) => model.syncIndexes()),
     );
     getAuth();
@@ -104,6 +108,8 @@ export function setupAuthHarness() {
       "scans",
       "riskScores",
       "remediationActions",
+      "notifications",
+      "notificationPreferences",
     ]) {
       await db.collection(name).deleteMany({});
     }

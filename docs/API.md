@@ -1,6 +1,6 @@
 # API
 
-> Status: **Phase 9.** Describes what exists. Pattern (spec 12.2): request ID → authenticate → authorize (ownership in the query) → rate-limit → validate → service → typed response. Others' resources are **not found**, never forbidden.
+> Status: **Phase 10.** Describes what exists. Pattern (spec 12.2): request ID → authenticate → authorize (ownership in the query) → rate-limit → validate → service → typed response. Others' resources are **not found**, never forbidden.
 
 ## Route Handlers
 
@@ -10,6 +10,8 @@
 | `GET /api/scans/:id/events` | session | `200` `text/event-stream`: `event: scan` with a `ScanView` on each persisted change; `: keep-alive` every 15 s | server reads the DB once a second; closes at a terminal state, at 5 min, or on disconnect |
 
 `ScanView`: `id`, `identityId`, `trigger`, `state`, `failureReason`, `providers[] {name, displayName, state, errorCategory, count, isDemo}`, `summary {new, changed, existing, noLongerReported, activeBySeverity}`, `isDemo`, `createdAt`, `finishedAt`, `retryOfScanId`. It contains no identifier (E2E-checked).
+
+| `POST /api/notifications/unsubscribe?token=` | sealed token (no session) | `200` · `400 invalid_token` | RFC 8058 one-click target of `List-Unsubscribe`; can only turn alert email off (D-033) |
 
 There is deliberately **no** `/api/auth/*` surface (D-018). Both routes are GET-only; state changes go through Server Actions, which Next.js protects with an Origin/Host check. Any future mutating Route Handler must call `isSameOriginRequest` (`lib/security/origin.ts`).
 

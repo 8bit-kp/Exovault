@@ -8,6 +8,7 @@ import {
   SCAN_QUEUE_NAME,
 } from "@/lib/redis/bullmq";
 import { runMonitoringTick } from "@/server/services/monitoring/monitoring-service";
+import { dispatchDueNotifications } from "@/server/services/notification/notification-service";
 import { createBullmqScanQueue, type ScanJobData } from "@/server/services/scan/bullmq-queue";
 import { processScan, setScanQueue } from "@/server/services/scan/scan-service";
 
@@ -26,6 +27,7 @@ export interface RuntimeOptions {
   prefix?: string;
   concurrency?: number;
   tickMs?: number;
+  dispatchMs?: number;
   /** Run a monitoring tick immediately (reconcile overdue schedules after downtime). */
   tickOnStart?: boolean;
 }
@@ -51,16 +53,27 @@ export async function startWorkerRuntime(options: RuntimeOptions = {}): Promise<
   );
 
   const monitoringQueue = new Queue(MONITORING_QUEUE_NAME, { connection: createBullmqConnection(), prefix });
-  const monitoringWorker = new Worker(MONITORING_QUEUE_NAME, async () => runMonitoringTick(), {
-    connection: createBullmqConnection(),
-    prefix,
-    // One tick at a time per worker; claims are atomic across workers anyway.
-    concurrency: 1,
-  });
+  // One queue for periodic jobs: the monitoring tick and alert dispatch.
+  const monitoringWorker = new Worker(
+    MONITORING_QUEUE_NAME,
+    async (job) => (job.name === "dispatch" ? dispatchDueNotifications() : runMonitoringTick()),
+    {
+      connection: createBullmqConnection(),
+      prefix,
+      // One periodic job at a time per worker; claims are atomic across workers anyway.
+      concurrency: 1,
+    },
+  );
   await monitoringQueue.upsertJobScheduler(
     "monitoring-tick",
     { every: options.tickMs ?? env.MONITORING_TICK_MS },
     { name: "tick", opts: { removeOnComplete: { count: 100 }, removeOnFail: { age: 24 * 60 * 60 } } },
+  );
+
+  await monitoringQueue.upsertJobScheduler(
+    "notification-dispatch",
+    { every: options.dispatchMs ?? env.NOTIFICATION_DISPATCH_MS },
+    { name: "dispatch", opts: { removeOnComplete: { count: 100 }, removeOnFail: { age: 24 * 60 * 60 } } },
   );
 
   for (const worker of [scanWorker, monitoringWorker]) {
@@ -88,6 +101,7 @@ export async function startWorkerRuntime(options: RuntimeOptions = {}): Promise<
       // Waits for in-flight jobs to finish before resolving (graceful shutdown).
       await Promise.all([scanWorker.close(), monitoringWorker.close()]);
       await monitoringQueue.removeJobScheduler("monitoring-tick").catch(() => undefined);
+      await monitoringQueue.removeJobScheduler("notification-dispatch").catch(() => undefined);
       await Promise.all([monitoringQueue.close(), scanQueue.close()]);
       setScanQueue(undefined);
     },

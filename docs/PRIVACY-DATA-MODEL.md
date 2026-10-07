@@ -1,6 +1,6 @@
 # Privacy data model
 
-> Status: **Phase 8 (M1).** Covers account data, monitored identifiers, exposures, remediation and scores. Retention jobs, export and deletion are added as they're built. This is documentation for a portfolio project, not legal advice.
+> Status: **Phase 10 (M2).** Covers account data, monitored identifiers, exposures, remediation, scores and alerts. Retention jobs, export and deletion are added as they're built. This is documentation for a portfolio project, not legal advice.
 
 ## What we store about an account
 

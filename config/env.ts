@@ -76,6 +76,8 @@ const envSchema = z
     WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(64).default(4),
     // How often the worker looks for identities due a scheduled scan.
     MONITORING_TICK_MS: z.coerce.number().int().min(5_000).max(3_600_000).default(60_000),
+    // How often the worker sends due alerts.
+    NOTIFICATION_DISPATCH_MS: z.coerce.number().int().min(5_000).max(3_600_000).default(60_000),
 
     PROVIDER_MODE: z.enum(["mock", "live"]).default("mock"),
     HIBP_API_KEY: z

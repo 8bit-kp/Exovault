@@ -309,3 +309,36 @@ Format: **Context → Options → Decision → Consequences.** Newest last. Stat
   - The web app can now run on serverless with `SCAN_QUEUE=bullmq`, provided the worker runs on a container host (DEPLOYMENT.md).
   - E2E runs the real worker (`SCAN_QUEUE=bullmq`), so every E2E scan crosses web → Redis → worker → MongoDB.
   - Notifications for NEW / CHANGED exposures are Phase 10. Scans already persist the diff they need.
+
+## D-033 — Exposure alerts: what triggers them, delivery guarantees, unsubscribe (2026-10-07)
+
+- **Context:** Spec Part 10: alert only on NEW or materially CHANGED exposures, never re-alert, idempotent sending, preferences (channel, minimum severity, digest, quiet hours, timezone), safe email content, and an unsubscribe link.
+- **Decision:**
+  - **Triggers:** alerts come from **scheduled** scans only. A manual scan's results are already on screen, so emailing them is noise.
+    - "Materially changed" means the **severity went up**: persistence reports these as `diff.escalated`. New data that doesn't raise severity doesn't alert.
+  - **Never twice:** the dedupe key is `identityId:fingerprint:channel:event`, unique-indexed, where the event is `new` or `changed:<severity>`.
+    - The same exposure never alerts twice for the same event, and each escalation level alerts at most once.
+    - Creation is an idempotent upsert.
+  - **Preferences:**
+    - Defaults: email on, minimum severity Medium, immediate delivery, quiet hours off, UTC.
+    - They're stored per user and **re-checked at send time**, so turning email off also stops queued alerts.
+    - Quiet hours handle windows that cross midnight. Times are evaluated in the user's IANA timezone via Intl, to minute precision; on a DST change day the deferral can be off by the shift.
+    - The digest is one email at 08:00 local time.
+  - **Dispatch (worker, a BullMQ job scheduler every `NOTIFICATION_DISPATCH_MS`):**
+    - Each due row is claimed by compare-and-set, `pending → sending` (tested with concurrent dispatchers).
+    - It's grouped into one email per user per run, then sent.
+    - On failure it's retried with backoff (5, then 10 minutes) and marked `failed` after 3 attempts.
+    - Rows stuck in `sending` for more than 10 minutes go back to pending. Delivery is **at-least-once**: a worker that dies between the SMTP send and the database update can send one duplicate. Exactly-once isn't possible across SMTP.
+  - **Content:**
+    - Sent to the **account email** (the verified sign-in address), not the monitored address.
+    - Subjects carry no identifier, source or detail. Bodies show the masked identity, omit sensitive source names, and include the detection time in the user's timezone, the first checklist step and a deep link.
+    - Nothing is stored: content is rendered at send time.
+  - **Unsubscribe:**
+    - Every alert has a body link to a confirmation page, which never acts on GET (link scanners), and `List-Unsubscribe` / `List-Unsubscribe-Post` headers pointing to `POST /api/notifications/unsubscribe` (RFC 8058).
+    - Both carry a sealed, purpose-bound token, valid 90 days, that can only switch alert email off. That route skips the Origin check: there's no cookie session to abuse, and replaying it is harmless.
+  - **Retention:** notifications are kept 90 days (TTL). The inbox is `/app/notifications`.
+  - **Layering:** server code must not import UI components. A lucide icon import crashed the worker under the `react-server` condition. An ESLint rule now blocks non-type `@/components` imports in `server/`, `lib/`, `workers/` and `models/` (verified to fire).
+  - **Timezones:** pickers show modern IANA names (`Asia/Kolkata`, not ICU's `Asia/Calcutta`).
+- **Consequences:**
+  - Alerts are only as timely as the monitoring schedule plus one dispatch interval.
+  - Everything outside the alerts, inbox and alert settings still shows UTC, clearly labelled. Showing the user's timezone everywhere is a Phase 12 item.

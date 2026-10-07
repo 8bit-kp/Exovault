@@ -15,6 +15,14 @@ export const SEVERITY_RANK: Record<ExposureSeverity, number> = {
 };
 const BY_RANK: ExposureSeverity[] = ["info", "low", "medium", "high", "critical"];
 
+export const SEVERITY_LABELS: Record<ExposureSeverity, string> = {
+  critical: "Critical",
+  high: "High",
+  medium: "Medium",
+  low: "Low",
+  info: "Info",
+};
+
 export const SEVERITY_METHODOLOGY_VERSION = "2026-10.1";
 
 export interface SeverityInput {

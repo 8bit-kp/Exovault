@@ -55,7 +55,7 @@ export async function checkIdentityExposures(input: {
   // A failed check changes nothing: existing results stay as they were.
   const diff =
     outcome === "failed"
-      ? { new: [], changed: [], existing: [], noLongerReported: [] }
+      ? { new: [], changed: [], escalated: [], existing: [], noLongerReported: [] }
       : await persistExposures({
           userId: input.userId,
           identityId: input.identityId,

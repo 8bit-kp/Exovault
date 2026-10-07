@@ -2,7 +2,7 @@
 
 **A privacy-first exposure intelligence platform for individuals.** Exovault checks whether your _verified_ identifiers appear in legitimate breach and credential-exposure sources, and tells you what to do about it.
 
-> **Status: Phase 9 of 13 (M2 in progress).** Everything in M1 (sign-up, verified identities, live scans, explainable risk score, exposure details and remediation), plus scheduled monitoring run by a separate BullMQ worker and a filterable timeline. Next: email notifications. See [`docs/PROGRESS.md`](docs/PROGRESS.md).
+> **Status: M2 complete (Phase 10 of 13).** Sign up, verify an address, scan with live progress, get an explainable risk score, fix exposures with a checklist, and turn on scheduled monitoring with email alerts (immediate or daily digest, quiet hours, one-click unsubscribe). Next: security hardening, UX polish and final QA (M3). See [`docs/PROGRESS.md`](docs/PROGRESS.md).
 
 ## What it is not
 
