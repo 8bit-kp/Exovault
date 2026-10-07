@@ -328,14 +328,14 @@ function Monitoring() {
       index="06"
       eyebrow="Continuous monitoring"
       title="Re-checks on a schedule you choose."
-      intro="Turn on monitoring for a verified address and we'll re-check it every 6 hours, 12 hours or daily, against the same sources as a manual scan. New or changed findings show up on your dashboard. Email alerts are coming next."
+      intro="Turn on monitoring for a verified address and we'll re-check it every 6 hours, 12 hours or daily, against the same sources as a manual scan. When something new turns up, or a known exposure gets more serious, you get one email about it, never repeats. Choose a minimum severity, a daily summary instead, or quiet hours."
     >
       <div className="flex flex-wrap gap-3 text-sm">
         <span className="inline-flex items-center gap-2 rounded-md border border-line bg-surface-1 px-3 py-2 text-fg-muted">
           <Radar aria-hidden className="size-4 text-accent" /> Scheduled scans: available
         </span>
         <span className="inline-flex items-center gap-2 rounded-md border border-line bg-surface-1 px-3 py-2 text-fg-muted">
-          <BellRing aria-hidden className="size-4 text-fg-subtle" /> Email alerts: planned
+          <BellRing aria-hidden className="size-4 text-accent" /> Email alerts: available
         </span>
       </div>
     </Section>

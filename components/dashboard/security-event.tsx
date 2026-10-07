@@ -47,13 +47,16 @@ export function SecurityEvent({ kind, at, detail, className }: SecurityEventProp
   return (
     <div className={cn("flex gap-3 py-3", className)}>
       <Icon aria-hidden className={cn("mt-0.5 size-4 shrink-0", meta.tone)} />
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-fg">{meta.label}</p>
-        <p className="text-sm text-fg-muted">{detail}</p>
+      {/* Time sits under the text on phones, so the description keeps the full width. */}
+      <div className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:justify-between sm:gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-fg">{meta.label}</p>
+          <p className="text-sm text-fg-muted">{detail}</p>
+        </div>
+        <time dateTime={isoString(at)} className="shrink-0 font-mono text-xs text-fg-subtle">
+          {formatDateTime(at)}
+        </time>
       </div>
-      <time dateTime={isoString(at)} className="shrink-0 font-mono text-xs text-fg-subtle">
-        {formatDateTime(at)}
-      </time>
     </div>
   );
 }

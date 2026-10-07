@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Logo } from "@/components/ui/logo";
-import { AppNav } from "./app-nav";
+import { AppNav, type NavBadges } from "./app-nav";
 import { MobileNav } from "./mobile-nav";
 
 interface AppShellProps {
@@ -12,13 +12,14 @@ interface AppShellProps {
   accountCompact?: ReactNode;
   /** Optional banner above content, e.g. the "Demo data" notice in mock mode. */
   banner?: ReactNode;
+  badges?: NavBadges;
 }
 
 /**
  * Signed-in layout: fixed sidebar on large screens, top bar + drawer below.
  * The shell holds no data; pages fetch and authorize their own (D-003).
  */
-export function AppShell({ children, account, accountCompact, banner }: AppShellProps) {
+export function AppShell({ children, account, accountCompact, banner, badges }: AppShellProps) {
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[15rem_1fr]">
       <aside className="hidden border-r border-line bg-surface-1/50 lg:flex lg:flex-col">
@@ -28,7 +29,7 @@ export function AppShell({ children, account, accountCompact, banner }: AppShell
           </Link>
         </div>
         <nav aria-label="App" className="flex-1 p-3">
-          <AppNav />
+          <AppNav badges={badges} />
         </nav>
         {account ? <div className="border-t border-line p-3">{account}</div> : null}
       </aside>
@@ -36,7 +37,7 @@ export function AppShell({ children, account, accountCompact, banner }: AppShell
       <div className="flex min-w-0 flex-col">
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-line bg-bg/90 px-4 backdrop-blur-md lg:hidden">
           <div className="flex items-center gap-2">
-            <MobileNav />
+            <MobileNav badges={badges} />
             <Link href="/app/dashboard" className="rounded-sm">
               <Logo />
             </Link>

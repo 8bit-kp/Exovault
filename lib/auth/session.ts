@@ -3,6 +3,8 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { AUTH_ROUTES } from "@/config/navigation";
+import { getPreferences } from "@/server/services/notification/notification-service";
+import { setRequestTimeZone } from "./request-timezone";
 import { getAuth } from "./server";
 
 /**
@@ -23,6 +25,8 @@ export async function requireSession(): Promise<AppSession> {
   if (!session) redirect(AUTH_ROUTES.signIn);
   // Unverified users can't hold a session (requireEmailVerification), but check anyway.
   if (!session.user.emailVerified) redirect(AUTH_ROUTES.verifyEmail);
+  // Every page and action that shows times calls this first: set the display timezone for the request.
+  setRequestTimeZone((await getPreferences(session.user.id)).timezone);
   return session;
 }
 

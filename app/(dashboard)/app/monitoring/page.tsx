@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Fingerprint } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { MonitoringForm } from "@/components/monitoring/monitoring-form";
@@ -52,8 +53,11 @@ export default async function MonitoringPage() {
                 frequency={view.frequency}
               />
               <p className="text-xs text-fg-subtle">
-                Email alerts for new findings are coming next. Until then, new results appear on your
-                dashboard.
+                New findings during monitoring are emailed to you according to your{" "}
+                <Link href="/app/settings/notifications" className="text-accent underline underline-offset-4">
+                  alert settings
+                </Link>
+                .
               </p>
             </PanelBody>
           </Panel>

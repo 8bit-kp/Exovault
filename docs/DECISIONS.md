@@ -232,7 +232,7 @@ Format: **Context → Options → Decision → Consequences.** Newest last. Stat
 
 - **Decision:**
   - **Demo mode:** `PROVIDER_MODE=mock` uses two deterministic demo providers over a fictional catalog. Every result is persisted with `isDemo: true` on both the exposure and the catalog row. From Phase 7, the UI must show "Demo data" for these.
-  - **Seed:** `npm run seed` refuses production and refuses live mode. It creates `demo@exovault.example` through the public auth API and marks it verified, adds the identity, and runs a real engine check against the demo providers.
+  - **Seed:** `npm run seed` refuses production and refuses live mode. It creates `demo@exovault.example` through the public auth API and marks it verified, adds the identity, and runs a real manual scan against the demo providers (D-036).
   - **Scripts:** they run with `tsx --conditions=react-server`, so modules guarded by `server-only` load.
   - **NFC correction:** spec 7.4 requires NFC and an IDNA/punycode domain. Phase 4's normalizer used NFKC with no IDNA, so it was corrected. Blind indexes for addresses whose NFC and NFKC forms differ would change; nothing deployed is affected.
 - **Consequences:** Demo results are reproducible across machines. Tests and the seed never touch a live API.
@@ -398,3 +398,23 @@ Format: **Context → Options → Decision → Consequences.** Newest last. Stat
 - **Spoofable per-IP limits** without a trusted proxy (D-021).
 - **Session tokens** are stored in plaintext by the library.
 - **Soft 404s** for cross-user URLs (D-025).
+
+## D-036 — Phase 12 UX polish batch (2026-10-07)
+
+**Context:** a screenshot review of every app page (desktop 1440px and Pixel 7) and a pass over hierarchy, wording and states.
+
+**Options:** keep times in UTC with a label, or show them in each user's timezone. Keep the demo seed as a direct engine call, or run a real scan.
+
+**Decision:**
+
+- **Timezone everywhere.** `lib/utils/format.ts` takes its default timezone from a provider. `lib/auth/request-timezone.ts` registers a per-request store (React `cache`), and `requireSession()` fills it from the user's notification preferences. Every server-rendered date in the app then uses the user's zone, labelled with its offset (e.g. "GMT+5:30"). Outside a request (worker, tests) it stays UTC. The settings form offers "Use this device's timezone", read with `useSyncExternalStore`, so there is no hydration mismatch.
+- **Severity reasons in plain language.** Methodology `2026-10.2`: wording only, same matrix.
+- **Unread badge** on the Notifications nav item (desktop and mobile; "99+" cap).
+- **`app/(dashboard)/app/loading.tsx`:** a skeleton while pages load. As a side effect, a streamed not-found page carries two identical `robots: noindex` tags. That's harmless, and the E2E check now asserts every copy says noindex.
+- **Removed duplication:** the checklist heading was repeated inside its panel, and the "N of M steps done" count appeared twice.
+- **Mobile:** detail rows and activity timestamps stack on narrow screens.
+- **Buttons:** settings forms use natural-width submit buttons; auth cards keep full-width buttons.
+- **Seed runs a real manual scan** (in-process queue, no worker needed). The demo account gets a Scan record, a last-scan time and timeline entries instead of "Last scan: Never" beside three exposures. Re-running within the 15-minute cooldown reuses the existing scan.
+- **Marketing and monitoring copy:** says email alerts exist (they shipped in Phase 10). The unused `NotYetAvailable` component is removed.
+
+**Consequences:** dates differ per user, so they must never sit in shared caches (they don't: all app pages are dynamic). The seeded account starts inside the manual-scan cooldown.

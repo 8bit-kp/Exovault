@@ -35,7 +35,6 @@ export default async function ExposureDetailPage({ params }: PageProps<"/app/exp
   if (!exposure) notFound();
 
   const closed = exposure.remediationState === "remediated" || exposure.remediationState === "dismissed";
-  const doneCount = exposure.checklist.filter((i) => i.done).length;
 
   return (
     <article className="space-y-8">
@@ -79,7 +78,7 @@ export default async function ExposureDetailPage({ params }: PageProps<"/app/exp
               description={
                 closed
                   ? "This is closed. Reopen it if something changes."
-                  : `${doneCount} of ${exposure.checklist.length} steps done. Progress is saved and lowers your risk score.`
+                  : "Each step is saved as you tick it, and lowers your risk score."
               }
             />
             <PanelBody className="space-y-6">
@@ -216,9 +215,9 @@ export default async function ExposureDetailPage({ params }: PageProps<"/app/exp
 
 function Row({ term, value }: { term: string; value: React.ReactNode }) {
   return (
-    <div className="flex justify-between gap-4">
+    <div className="flex flex-col gap-0.5 sm:flex-row sm:justify-between sm:gap-4">
       <dt className="text-fg-subtle">{term}</dt>
-      <dd className="text-right text-fg">{value}</dd>
+      <dd className="text-fg sm:text-right">{value}</dd>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: 2026-10-07 (end of Phase 11)_
+_Last updated: 2026-10-07 (end of Phase 12)_
 
 ## Phase 0: Repository audit (done)
 
@@ -220,6 +220,22 @@ Review and fixes (SECURITY.md "Phase 11 security review", D-034, D-035):
 
 **Known gaps / carried forward:** user-timezone display beyond alerts (Phase 12), data export / account deletion workflow (spec 5.2), MFA, Dockerfiles (Phase 13), live HIBP key. The `security-review` skill couldn't run (it needs an `origin` remote); the manual three-part review replaced it.
 
+## Phase 12: UX polish (done)
+
+Screenshot review of every app page on desktop and mobile, with fixes (D-036):
+
+- [x] Times shown in the user's chosen timezone everywhere in the app (offset-labelled), plus a "use this device's timezone" shortcut
+- [x] Plain-language severity reasons (methodology `2026-10.2`)
+- [x] Unread count badge on Notifications; route-level loading skeleton
+- [x] Duplicated checklist heading and step count removed; responsive detail rows and activity timestamps; natural-width settings buttons
+- [x] Copy updated now that email alerts exist; dead `NotYetAvailable` component removed
+- [x] Seed runs a real manual scan, so a fresh demo shows a last-scan time and timeline entries
+- [x] Review run: no console errors, no 4xx and no horizontal scroll on 10 app pages × 2 viewports
+
+**Gate:** lint, format, typecheck (app + worker), 356 unit/component tests, 149 integration tests, worker build, 0 production-audit vulnerabilities. E2E: 121 passed and 1 failed in the full run; 2 are skipped by design. The failure was the mobile CSP check on `/design-system/app-shell`. It passed 3/3 when re-run alone and is recorded as an open flake.
+
+**Carried forward:** data export / account deletion workflow (spec 5.2), MFA, Dockerfiles (Phase 13), live HIBP key, investigate the CSP-spec flake.
+
 ## In progress
 
 None.
@@ -228,6 +244,6 @@ None.
 
 - **HIBP API key** (paid; Core 1 is enough for development). Needed only to run the live provider.
 
-## Next: Phase 12, UX polish
+## Next: Phase 13, final QA and release
 
-Audit spacing, type, hierarchy, accessibility, mobile, states and motion across every page; show times in the user's timezone everywhere; remove generic patterns; screenshot review on desktop and mobile.
+Dockerfiles for web and worker, verified demo mode, docs checked against the running product, final QA pass, and the M3 report.

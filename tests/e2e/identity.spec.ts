@@ -104,7 +104,12 @@ test("another user's identity URL reveals nothing: same not-found page as a miss
   // what matters is that the content is the generic not-found page and nothing of the victim's.
   await expect(attackerPage.getByRole("heading", { level: 1, name: "Not found" })).toBeVisible();
   await expect(attackerPage.locator("main").getByText(victimMasked)).toHaveCount(0);
-  await expect(attackerPage.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
+  // A streamed not-found page can carry the robots tag twice (layout + not-found); every copy must say noindex.
+  const robots = await attackerPage
+    .locator('meta[name="robots"]')
+    .evaluateAll((tags) => tags.map((t) => t.getAttribute("content") ?? ""));
+  expect(robots.length).toBeGreaterThan(0);
+  for (const content of robots) expect(content).toMatch(/noindex/);
   await expectAccessible(attackerPage);
 
   // Identical to an ID that doesn't exist at all.

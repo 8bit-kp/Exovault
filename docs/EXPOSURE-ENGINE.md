@@ -54,7 +54,9 @@ How sure we are that the record really involves this identity and that its data 
 | Demo catalog     | 0.70–0.95        |
 | Merged report    | max of its parts |
 
-## Severity (spec 7.6): `classifySeverity`, methodology `2026-10.1`
+## Severity (spec 7.6): `classifySeverity`, methodology `2026-10.2`
+
+`2026-10.2` (Phase 12) changed only the wording of the stored reason: it names the data in plain language ("a scrambled copy of your password") instead of internal keys (`password_hash`). The severity matrix is unchanged.
 
 | Severity | Rule (first match wins, most severe first)                                                 |
 | -------- | ------------------------------------------------------------------------------------------ |

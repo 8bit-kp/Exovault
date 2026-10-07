@@ -42,7 +42,7 @@ test("open an exposure, work through the checklist, and watch the score fall", a
   // Users click the row's label (the native checkbox is visually hidden behind it).
   await checklist.getByText("Change the password for this account").click();
   await expect(page.getByText("In progress", { exact: true })).toBeVisible(AFTER_SUBMIT);
-  await expect(page.getByText(/1 of \d+ steps done/)).toBeVisible();
+  await expect(page.getByText(/^1 of \d+ done$/)).toBeVisible();
 
   // Progress survives a reload.
   await page.reload();

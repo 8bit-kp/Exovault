@@ -3,13 +3,13 @@
 import { Menu, X } from "lucide-react";
 import { useRef } from "react";
 import { Logo } from "@/components/ui/logo";
-import { AppNav } from "./app-nav";
+import { AppNav, type NavBadges } from "./app-nav";
 
 /**
  * Native <dialog> drawer: modal focus containment, Escape to close, inert
  * background and focus restoration come from the browser (D-015).
  */
-export function MobileNav() {
+export function MobileNav({ badges }: { badges?: NavBadges }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const close = () => dialogRef.current?.close();
 
@@ -45,7 +45,7 @@ export function MobileNav() {
           </button>
         </div>
         <nav aria-label="App" className="p-3">
-          <AppNav onNavigate={close} />
+          <AppNav onNavigate={close} badges={badges} />
         </nav>
       </dialog>
     </>

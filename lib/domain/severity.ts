@@ -23,7 +23,23 @@ export const SEVERITY_LABELS: Record<ExposureSeverity, string> = {
   info: "Info",
 };
 
-export const SEVERITY_METHODOLOGY_VERSION = "2026-10.1";
+export const SEVERITY_METHODOLOGY_VERSION = "2026-10.2";
+
+/** Plain-language phrases for the severity explanation (spec 13.1: no security jargon). */
+const PHRASES: Partial<Record<ExposedDataType, string>> = {
+  password_plaintext: "your password in readable form",
+  auth_token: "a login session token",
+  security_qa: "your security questions and answers",
+  financial: "financial details",
+  password_hash: "a scrambled copy of your password",
+  government_id: "a government ID number",
+  mfa_backup_codes: "two-factor backup codes",
+  phone: "your phone number",
+  date_of_birth: "your date of birth",
+  ip_address: "an IP address",
+  physical_address: "your home address",
+};
+const phrase = (type: ExposedDataType) => PHRASES[type] ?? type;
 
 export interface SeverityInput {
   dataTypes: readonly ExposedDataType[];
@@ -47,19 +63,19 @@ export function classifySeverity({ dataTypes, sourceType }: SeverityInput): Seve
     return { severity: "critical", reason: "Found in infostealer malware logs, which hold live credentials" };
   }
   const critical = CRITICAL_TYPES.find(has);
-  if (critical) return { severity: "critical", reason: `Exposed data includes ${critical}` };
+  if (critical) return { severity: "critical", reason: `The exposed data includes ${phrase(critical)}` };
 
   if (has("physical_address") && has("phone")) {
     return { severity: "high", reason: "Home address and phone number exposed together" };
   }
   const high = HIGH_TYPES.find(has);
-  if (high) return { severity: "high", reason: `Exposed data includes ${high}` };
+  if (high) return { severity: "high", reason: `The exposed data includes ${phrase(high)}` };
 
   if (has("username") && has("email")) {
     return { severity: "medium", reason: "Username and email exposed together" };
   }
   const medium = MEDIUM_TYPES.find(has);
-  if (medium) return { severity: "medium", reason: `Exposed data includes ${medium}` };
+  if (medium) return { severity: "medium", reason: `The exposed data includes ${phrase(medium)}` };
 
   if (dataTypes.length === 0)
     return { severity: "info", reason: "Source known; no personal data categories confirmed" };

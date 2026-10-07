@@ -21,6 +21,7 @@ export function ExposureChecklist({ exposureId, items }: { exposureId: string; i
   const router = useRouter();
   return (
     <RemediationChecklist
+      hideTitle
       items={items}
       onToggle={async (key, done) => {
         await setChecklistItemAction(exposureId, key, done);

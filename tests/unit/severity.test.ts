@@ -66,10 +66,18 @@ describe("classifySeverity (spec 7.6 matrix)", () => {
     }
   });
 
-  it("explains its decision", () => {
-    expect(classifySeverity({ dataTypes: ["email", "password_hash"], sourceType: "breach" }).reason).toMatch(
-      /password_hash/,
+  it("explains its decision in plain language, never with internal keys", () => {
+    expect(classifySeverity({ dataTypes: ["email", "password_hash"], sourceType: "breach" }).reason).toBe(
+      "The exposed data includes a scrambled copy of your password",
     );
+    for (const types of [
+      ["password_plaintext"],
+      ["phone"],
+      ["government_id"],
+      ["physical_address"],
+    ] as const) {
+      expect(classifySeverity({ dataTypes: [...types], sourceType: "breach" }).reason).not.toMatch(/_/);
+    }
   });
 });
 

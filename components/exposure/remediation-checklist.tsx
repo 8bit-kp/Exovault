@@ -19,6 +19,8 @@ interface RemediationChecklistProps {
    */
   onToggle: (id: string, done: boolean) => Promise<void>;
   title?: string;
+  /** Hide the visible title when the surrounding panel already has one (it stays for screen readers). */
+  hideTitle?: boolean;
   className?: string;
 }
 
@@ -30,6 +32,7 @@ export function RemediationChecklist({
   items,
   onToggle,
   title = "What to do now",
+  hideTitle = false,
   className,
 }: RemediationChecklistProps) {
   const [optimisticItems, setOptimistic] = useOptimistic(
@@ -57,7 +60,7 @@ export function RemediationChecklist({
   return (
     <fieldset className={cn("space-y-3", className)} aria-busy={pending || undefined}>
       <legend className="flex w-full items-baseline justify-between gap-4">
-        <span className="text-base font-semibold text-fg">{title}</span>
+        <span className={hideTitle ? "sr-only" : "text-base font-semibold text-fg"}>{title}</span>
         <span className="font-mono text-xs text-fg-muted" aria-live="polite">
           {completed} of {optimisticItems.length} done
         </span>

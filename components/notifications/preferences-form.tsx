@@ -1,12 +1,14 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState, useSyncExternalStore } from "react";
 import { savePreferencesAction } from "@/app/(dashboard)/app/settings/notifications/actions";
 import { FormMessage, SubmitButton } from "@/components/auth/form-parts";
 import { SEVERITY_META } from "@/components/exposure/severity-meta";
 import { EXPOSURE_SEVERITIES } from "@/lib/domain/exposure";
 import type { NotificationPreferences } from "@/lib/domain/notifications";
 import { IDLE } from "@/lib/validation/form-state";
+
+const noSubscribe = () => () => {};
 
 const field = "h-10 rounded-md border border-line-strong bg-bg px-2 text-sm text-fg";
 
@@ -18,6 +20,14 @@ export function PreferencesForm({
   timezones: string[];
 }) {
   const [state, action] = useActionState(savePreferencesAction, IDLE);
+  const [timezone, setTimezone] = useState(initial.timezone);
+  // The browser's own zone, read without an effect; null during server rendering (no hydration mismatch).
+  const browserZone = useSyncExternalStore(
+    noSubscribe,
+    () => Intl.DateTimeFormat().resolvedOptions().timeZone,
+    () => null,
+  );
+  const deviceZone = browserZone && timezones.includes(browserZone) ? browserZone : null;
   const error = (key: string) =>
     state.fieldErrors?.[key] ? (
       <p className="text-xs font-medium text-danger">{state.fieldErrors[key]}</p>
@@ -106,7 +116,12 @@ export function PreferencesForm({
 
       <label className="block space-y-1 text-sm text-fg">
         <span className="block font-medium">Your timezone</span>
-        <select name="timezone" defaultValue={initial.timezone} className={`${field} w-full max-w-sm`}>
+        <select
+          name="timezone"
+          value={timezone}
+          onChange={(event) => setTimezone(event.currentTarget.value)}
+          className={`${field} w-full max-w-sm`}
+        >
           {timezones.map((tz) => (
             <option key={tz} value={tz}>
               {tz}
@@ -114,12 +129,23 @@ export function PreferencesForm({
           ))}
         </select>
         <span className="block text-xs text-fg-muted">
-          Used for quiet hours, the daily summary, and times in alert emails.
+          Every date and time in the app, alert emails, quiet hours and the daily summary use it.
         </span>
+        {deviceZone && deviceZone !== timezone ? (
+          <button
+            type="button"
+            onClick={() => setTimezone(deviceZone)}
+            className="text-xs text-accent underline underline-offset-4"
+          >
+            Use this device&apos;s timezone ({deviceZone})
+          </button>
+        ) : null}
         {error("timezone")}
       </label>
 
-      <SubmitButton pendingLabel="Saving…">Save settings</SubmitButton>
+      <SubmitButton pendingLabel="Saving…" fullWidth={false}>
+        Save settings
+      </SubmitButton>
     </form>
   );
 }

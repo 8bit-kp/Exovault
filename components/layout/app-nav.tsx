@@ -31,7 +31,18 @@ export function isNavItemActive(href: string, pathname: string): boolean {
   return pathname === section || pathname.startsWith(`${section}/`);
 }
 
-export function AppNav({ onNavigate, className }: { onNavigate?: () => void; className?: string }) {
+export type NavBadges = Partial<Record<AppNavIcon, number>>;
+
+export function AppNav({
+  onNavigate,
+  className,
+  badges = {},
+}: {
+  onNavigate?: () => void;
+  className?: string;
+  /** Counts shown next to items, e.g. unread notifications. */
+  badges?: NavBadges;
+}) {
   const pathname = usePathname();
   return (
     <ul className={cn("space-y-0.5", className)}>
@@ -54,6 +65,12 @@ export function AppNav({ onNavigate, className }: { onNavigate?: () => void; cla
               ) : null}
               <Icon aria-hidden className={cn("size-4", active ? "text-accent" : "text-fg-subtle")} />
               {item.label}
+              {badges[item.icon] ? (
+                <span className="ml-auto rounded-sm bg-accent px-1.5 font-mono text-2xs font-semibold text-accent-fg">
+                  {badges[item.icon]! > 99 ? "99+" : badges[item.icon]}
+                  <span className="sr-only"> unread</span>
+                </span>
+              ) : null}
             </Link>
           </li>
         );

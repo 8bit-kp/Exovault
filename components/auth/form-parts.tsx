@@ -8,10 +8,24 @@ import { Callout } from "@/components/ui/callout";
 import { Field, Input } from "@/components/ui/field";
 import type { FormState } from "@/lib/validation/form-state";
 
-export function SubmitButton({ children, pendingLabel }: { children: ReactNode; pendingLabel: string }) {
+export function SubmitButton({
+  children,
+  pendingLabel,
+  fullWidth = true,
+}: {
+  children: ReactNode;
+  pendingLabel: string;
+  /** Full width suits narrow auth cards; settings panels use a natural-width button. */
+  fullWidth?: boolean;
+}) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" className="w-full" disabled={pending} aria-disabled={pending}>
+    <Button
+      type="submit"
+      className={fullWidth ? "w-full" : undefined}
+      disabled={pending}
+      aria-disabled={pending}
+    >
       {pending ? (
         <>
           <LoaderCircle aria-hidden className="animate-spin motion-reduce:animate-none" />

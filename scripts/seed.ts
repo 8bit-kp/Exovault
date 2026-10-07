@@ -13,8 +13,14 @@ import { closeMongoClient, getAuthDb } from "@/lib/db/mongo-client";
 import { connectToDatabase, disconnectFromDatabase } from "@/lib/db/mongoose";
 import { closeRedis } from "@/lib/redis/client";
 import { Exposure } from "@/models/Exposure";
-import { checkIdentityExposures } from "@/server/services/exposure/exposure-service";
 import { addEmailIdentity, listIdentities } from "@/server/services/identity/identity-service";
+import { createInProcessQueue } from "@/server/services/scan/queue";
+import {
+  getLatestScan,
+  processScan,
+  setScanQueue,
+  startManualScan,
+} from "@/server/services/scan/scan-service";
 
 const DEMO_EMAIL = "demo@exovault.example";
 
@@ -61,8 +67,16 @@ async function main() {
     identity = (await listIdentities(user.id)).find((i) => i.id === added.identityId)!;
   }
 
-  const check = await checkIdentityExposures({ userId: user.id, identityId: identity.id, requestId: "seed" });
-  if (!check.ok) throw new Error(`Demo check failed (${check.reason}).`);
+  // A real manual scan, run in this process (no worker needed), so the demo has a Scan
+  // record, a last-scan time and timeline entries, exactly like a user-started scan.
+  const queue = createInProcessQueue(processScan, 1);
+  setScanQueue(queue);
+  const started = await startManualScan(user.id, identity.id, { requestId: "seed" });
+  if (!started.ok && started.reason !== "cooldown") throw new Error(`Demo scan failed (${started.reason}).`);
+  await queue.drain();
+  const scan = await getLatestScan(user.id, identity.id);
+  if (!scan || !["completed", "partial"].includes(scan.state))
+    throw new Error(`Demo scan did not complete (${scan?.state ?? "missing"}).`);
 
   // Variety for the UI: mark the oldest, low-severity exposure as already handled.
   await Exposure.updateOne(
@@ -77,8 +91,8 @@ async function main() {
         account: DEMO_EMAIL,
         password: password ?? "(unchanged; set SEED_DEMO_PASSWORD on first seed to choose it)",
         identity: identity.masked,
-        outcome: check.result.outcome,
-        providers: check.result.providerResults.map((r) => `${r.provider}:${r.state}`),
+        scan: started.ok ? scan.state : `${scan.state} (reused; manual-scan cooldown)`,
+        providers: scan.providers.map((p) => `${p.name}:${p.state}`),
         exposures: total,
         note: "All data is fictional and comes from demo providers. The UI labels it 'Demo data'.",
       },
