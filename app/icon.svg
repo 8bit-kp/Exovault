@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Exovault vault glyph (components/ui/logo.tsx) on a dark tile; hex values approximate the theme tokens ev-bg, ev-fg and ev-accent. -->
+  <rect width="32" height="32" rx="7" fill="#0c0f13"/>
+  <g transform="translate(4 4)">
+    <rect x="2.5" y="2.5" width="19" height="19" rx="2" stroke="#e7eaee" stroke-width="1.75"/>
+    <path d="M8 7.5H6.5v9H8M16 7.5h1.5v9H16" stroke="#6ad6de" stroke-width="1.75"/>
+    <circle cx="12" cy="12" r="2" fill="#6ad6de"/>
+  </g>
+</svg>
