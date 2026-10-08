@@ -1,11 +1,12 @@
 # User flows
 
-> Status: **end of M2 (Phase 10).** The flows that exist today, with the routes they use. Every step has one primary action (spec 13.1).
+> Status: **M3 complete (Phase 13).** The flows that exist today, with the routes they use. Every step has one primary action (spec 13.1).
 
 ## 1. First run (spec 13.2)
 
 ```text
-/ (landing) ── "Check your exposure" ──▶ /auth/sign-up
+/ (landing; also /how-it-works, /security, /privacy, /about)
+  ── "Check your exposure" ──▶ /auth/sign-up
   ──▶ /auth/verify-email        6-digit code from email (address carried in a sealed cookie, never the URL)
   ──▶ /onboarding               what happens next
   ──▶ /onboarding/identity      "Use my sign-in email" (auto-verified) or another address (+ emailed code)
@@ -20,7 +21,7 @@
 
 - the risk score, with direction, band and "Why this score?"
 - active exposures by severity
-- monitoring (Off, manual scans only)
+- monitoring: on (with the next scan time) or "Off — Manual scans only"
 - up to 5 recommended actions
 - the latest scan, with Scan again or the remaining cooldown
 - recent exposures
@@ -53,7 +54,7 @@ From the dashboard or `/app/identities/[id]`: **Scan again** → `/app/scans/[id
 1. `/app/monitoring`: turn monitoring on (every 6h, 12h or daily) or off. Off cancels scheduled scans that haven't started.
 2. The worker runs scheduled scans. New exposures, and known ones that got more serious, create alerts.
 3. Alerts are emailed to the sign-in address, either immediately or in a daily 08:00 summary, held during quiet hours, and filtered by minimum severity (`/app/settings/notifications`).
-4. `/app/notifications` lists every alert and what happened to it: emailed, scheduled, or not emailed and why.
+4. `/app/notifications` lists every alert (the nav shows the unread count) and what happened to it: emailed, scheduled, or not emailed and why.
 5. Each email has "Stop alert emails": a confirmation page, plus RFC 8058 one-click for mail apps.
 
 ## 6. Account and identities
@@ -63,6 +64,14 @@ From the dashboard or `/app/identities/[id]`: **Scan again** → `/app/scans/[id
 - `/app/timeline`: every exposure grouped by month, with filters (severity, status, source, identity, months).
 - `/app/settings/security`: list sessions (browser only, no IP), sign out one session or all others.
 - `/auth/forgot-password` → emailed link → `/auth/reset-password`, which signs you out everywhere.
+- `/app/settings/notifications`: alert settings and **your timezone**, which every date in the app uses ("Use this device's timezone" offers the browser's).
+
+## 7. Your data: export and deletion (spec 5.2)
+
+- `/app/settings/privacy` → **Download my data (JSON)**: everything the account holds, saved as a file.
+- `/app/settings/privacy` → **Delete my account** (password + confirmation) → signed out → `/auth/sign-in?deleted=1` ("scheduled for deletion"), with an email giving the date.
+- During the grace period (7 days by default), signing in leads only to `/auth/account-deletion`: **Keep my account** (→ dashboard, with a reminder that monitoring is still off), a last download, or sign out.
+- After it, the worker deletes everything and emails a confirmation. The address can be used to sign up again.
 
 ## States covered on every screen (spec 13.8)
 

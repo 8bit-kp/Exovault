@@ -13,6 +13,10 @@ export function newDeviceContext(browser: Browser): Promise<BrowserContext> {
 
 export const PUBLIC_PAGES = [
   "/",
+  "/how-it-works",
+  "/security",
+  "/privacy",
+  "/about",
   "/auth/sign-up",
   "/auth/sign-in",
   "/auth/verify-email",

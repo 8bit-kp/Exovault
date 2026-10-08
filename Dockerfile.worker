@@ -1,0 +1,27 @@
+# syntax=docker/dockerfile:1
+# Exovault worker: the long-running BullMQ process (scans, scheduled monitoring, alert dispatch,
+# account purge). It must not run inside serverless functions (spec 4.2).
+#   docker build -f Dockerfile.worker -t exovault-worker .
+#   docker run --env-file .env.production exovault-worker
+# Set SCAN_QUEUE=bullmq on both the web app and the worker.
+
+ARG NODE_VERSION=22
+
+FROM node:${NODE_VERSION}-bookworm-slim AS build
+WORKDIR /app
+ENV MONGOMS_DISABLE_POSTINSTALL=1
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund
+COPY . .
+RUN npm run worker:build
+
+FROM node:${NODE_VERSION}-bookworm-slim AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+COPY package.json package-lock.json ./
+# The bundle keeps packages external, so production dependencies are installed alongside it.
+RUN npm ci --omit=dev --no-audit --no-fund && npm cache clean --force
+COPY --from=build --chown=node:node /app/dist ./dist
+USER node
+# `server-only` resolves to its no-op build under the react-server condition, as in Next's server.
+CMD ["node", "--conditions=react-server", "dist/worker.mjs"]

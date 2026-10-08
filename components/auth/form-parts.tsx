@@ -12,9 +12,11 @@ export function SubmitButton({
   children,
   pendingLabel,
   fullWidth = true,
+  variant,
 }: {
   children: ReactNode;
   pendingLabel: string;
+  variant?: "primary" | "danger";
   /** Full width suits narrow auth cards; settings panels use a natural-width button. */
   fullWidth?: boolean;
 }) {
@@ -22,6 +24,7 @@ export function SubmitButton({
   return (
     <Button
       type="submit"
+      variant={variant}
       className={fullWidth ? "w-full" : undefined}
       disabled={pending}
       aria-disabled={pending}

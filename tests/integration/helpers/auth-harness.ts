@@ -7,6 +7,7 @@ import { closeRedis, getRedis } from "@/lib/redis/client";
 import { setRateLimitStore } from "@/lib/rate-limit";
 import { memoryEmailProvider } from "@/server/providers/email/memory";
 import { setEmailProvider } from "@/server/providers/email";
+import { AccountDeletion } from "@/models/AccountDeletion";
 import { Breach } from "@/models/Breach";
 import { Exposure } from "@/models/Exposure";
 import { Identity } from "@/models/Identity";
@@ -84,6 +85,7 @@ export function setupAuthHarness() {
         RemediationAction,
         Notification,
         NotificationPreference,
+        AccountDeletion,
       ].map((model) => model.syncIndexes()),
     );
     getAuth();
@@ -111,6 +113,7 @@ export function setupAuthHarness() {
       "notifications",
       "notificationPreferences",
       "pendingSignups",
+      "accountDeletions",
     ]) {
       await db.collection(name).deleteMany({});
     }

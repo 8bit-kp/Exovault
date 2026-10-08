@@ -107,6 +107,9 @@ const envSchema = z
     // CI runs a production build with throwaway secrets; only CI sets this.
     EXOVAULT_ALLOW_TEST_SECRETS: z.enum(["0", "1"]).default("0"),
     MAX_ACTIVE_IDENTITIES_PER_USER: z.coerce.number().int().min(1).max(50).default(1),
+    // Account deletion (spec 5.2): days the account can still be restored, and how often the worker purges.
+    ACCOUNT_DELETION_GRACE_DAYS: z.coerce.number().int().min(1).max(30).default(7),
+    ACCOUNT_PURGE_MS: z.coerce.number().int().min(5_000).max(86_400_000).default(3_600_000),
   })
   .superRefine((env, ctx) => {
     if (!env.IDENTIFIER_ENCRYPTION_KEYS.has(env.IDENTIFIER_ENCRYPTION_ACTIVE_KEY_ID)) {

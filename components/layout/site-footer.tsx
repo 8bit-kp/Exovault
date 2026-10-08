@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { brand } from "@/config/brand";
+import { MARKETING_NAV } from "@/config/navigation";
 import { Logo } from "@/components/ui/logo";
 
 export function SiteFooter() {
@@ -15,16 +16,13 @@ export function SiteFooter() {
         </div>
         <nav aria-label="Footer">
           <ul className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
-            <li>
-              <Link href="/#how-it-works" className="text-fg-muted hover:text-fg">
-                How it works
-              </Link>
-            </li>
-            <li>
-              <Link href="/#privacy" className="text-fg-muted hover:text-fg">
-                Privacy design
-              </Link>
-            </li>
+            {MARKETING_NAV.map((item) => (
+              <li key={item.href}>
+                <Link href={item.href} className="text-fg-muted hover:text-fg">
+                  {item.label}
+                </Link>
+              </li>
+            ))}
             <li>
               <Link href="/#limitations" className="text-fg-muted hover:text-fg">
                 Limitations

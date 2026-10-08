@@ -21,6 +21,8 @@ export const EMAIL_KINDS = [
   "identity-verification",
   "exposure-alert",
   "exposure-digest",
+  "account-deletion-scheduled",
+  "account-deleted",
 ] as const;
 export type EmailKind = (typeof EMAIL_KINDS)[number];
 

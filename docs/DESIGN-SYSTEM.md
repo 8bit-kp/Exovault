@@ -1,6 +1,6 @@
 # Design system
 
-> Status: **built (Phase 2).** Live reference: run the app and open `/design-system` (fictional data, labelled "Demo data"). Shell previews are at `/design-system/app-shell` and `/design-system/auth-shell`.
+> Status: **built (Phase 2), polished in Phase 12.** Live reference: run the app and open `/design-system` (fictional data, labelled "Demo data"). Shell previews are at `/design-system/app-shell` and `/design-system/auth-shell`.
 
 ## Principles
 
@@ -63,7 +63,7 @@ Components receive view models (`ExposureView`, `IdentityView`) with ISO date st
 
 - Skip link is the first tab stop on every page; every layout has `<main id="main">`.
 - One global `:focus-visible` style (2px focus colour, offset).
-- Dates render in UTC with an explicit "UTC" suffix until users can set a timezone (M2).
+- Dates render in the signed-in user's chosen timezone (Settings → Notifications), labelled with its offset, e.g. "7 Oct 2026, 05:00 GMT+5:30"; public pages and anything outside a session use UTC, labelled "UTC" (D-036). `<time dateTime>` always carries the ISO instant.
 - Live regions: `ScanProgress` (one polite region, one sentence per persisted state change), `RemediationChecklist` (progress count; errors via `role=alert`), `LoadingState`.
 - Verified by: axe in jsdom per component (`tests/components`), and axe **with colour contrast** on every public page at desktop and Pixel 7 sizes (`tests/e2e/accessibility.spec.ts`), plus keyboard, drawer focus-restoration, and no-horizontal-scroll checks.
 

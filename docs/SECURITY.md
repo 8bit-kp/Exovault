@@ -1,6 +1,6 @@
 # Security
 
-> Status: describes controls that exist in code as of **Phase 11 (security review)**. Planned controls are listed in [THREAT-MODEL.md](THREAT-MODEL.md) with their phase. Not a substitute for an independent review.
+> Status: describes controls that exist in code as of **Phase 13 (M3 complete)**. Not a substitute for an independent review.
 
 ## Authentication (Better Auth 1.7.7, D-002, D-018, D-019)
 
@@ -69,17 +69,39 @@
 
 ## Rate limits (spec 12.3, D-020)
 
-Redis fixed windows, keyed by HMAC of the subject, all **fail closed**:
+Redis fixed windows, keyed by HMAC of the subject (never the raw email or IP), all **fail closed**. Source of truth: `config/rate-limits.ts`.
 
-| Rule                   | Limit                                                                 |
-| ---------------------- | --------------------------------------------------------------------- |
-| Sign-in                | 5 / 15 min per IP + per account (verification-code attempts share it) |
-| Sign-up                | 5 / hour per IP                                                       |
-| Verification resend    | 3 / hour per account                                                  |
-| Password reset request | 3 / hour per account + per IP                                         |
-| Identity creation      | 5 / day per user (Phase 4)                                            |
+| Rule                                      | Limit                                                        |
+| ----------------------------------------- | ------------------------------------------------------------ |
+| Sign-in (password or email code)          | 5 / 15 min per IP, and 5 / 15 min per account                |
+| Sign-up                                   | 5 / hour per IP, 3 / hour per email address                  |
+| Verification-code resend                  | 3 / hour per account                                         |
+| Password-reset request                    | 3 / hour per account, 3 / hour per IP                        |
+| Password-reset submit                     | 10 / hour per IP                                             |
+| Identity creation                         | 5 / day per user                                             |
+| Ownership codes issued                    | 5 / day per target address                                   |
+| Ownership code guesses                    | 10 / 15 min per user, 10 / 15 min per target address         |
+| Ownership code resend                     | 3 / hour per identity                                        |
+| Retry failed source                       | 3 / hour per identity (manual scans: 15-min cooldown, D-029) |
+| Reveals (identity, sensitive source)      | 30 / hour per user                                           |
+| Unsubscribe                               | 20 / hour per IP                                             |
+| Scan progress streams opened              | 30 / 5 min per user                                          |
+| Password re-entry before account deletion | 5 / 15 min per user                                          |
+| Data export                               | 5 / hour per user                                            |
 
 Per-IP limits depend on `TRUSTED_PROXY_COUNT` (D-021).
+
+## Data export and account deletion (Phase 13, spec 5.2, D-037)
+
+| Control                              | Implementation                                                                                                                | Verified by                                                           |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Export can't be triggered cross-site | `POST` only; explicit `isSameOriginRequest` before the session check; session required                                        | `privacy.spec.ts` (403 foreign Origin, 401)                           |
+| Export contains no internals         | explicit field list; no ciphertext, blind index, fingerprints, code hashes, dedupe keys, audit hashes; only the caller's rows | `account-privacy.test.ts`                                             |
+| Deletion needs re-authentication     | password checked against the stored hash (no session created), plus a confirmation; 5 tries / 15 min                          | `account-privacy.test.ts`, `privacy.spec.ts`                          |
+| Frozen during the grace period       | sessions deleted, monitoring off, queued scans cancelled, alerts suppressed; `requireSession()` admits only the restore page  | `account-privacy.test.ts`, `privacy.spec.ts`                          |
+| Complete, resumable purge            | idempotent deletes in every collection and Better Auth's; claim by compare-and-set; stale claims resumed                      | `account-privacy.test.ts` (whole-DB scan for the address and user id) |
+| Audit trail kept but unlinked        | `userId` and `subjectHash` nulled on the user's rows; `ACCOUNT_DELETED` has no user reference                                 | `account-privacy.test.ts`                                             |
+| No address in logs                   | export, deletion and a failing purge included in the planted-secret log scan                                                  | `log-leakage.test.ts`                                                 |
 
 ## Web hardening (Phase 2, D-007, D-014)
 
@@ -88,7 +110,7 @@ Per-request nonce CSP with no `'unsafe-inline'` in production, `frame-ancestors 
 ## Logging and audit
 
 - pino with central key redaction (`lib/logging/logger.ts`). Third-party log text passes through `scrubMessage` (emails and tokens removed).
-- Append-only `auditLogs` with hashed subject and IP (D-022). Events emitted today: `USER_CREATED`, `EMAIL_VERIFIED`, `LOGIN_SUCCESS`, `LOGIN_FAILED`, `LOGOUT`, `PASSWORD_RESET_REQUESTED`, `PASSWORD_RESET_COMPLETED`, `SESSIONS_REVOKED`, `RATE_LIMITED`, `IDENTITY_ADDED`, `IDENTITY_VERIFICATION_SENT`, `IDENTITY_VERIFIED`, `IDENTITY_REVEALED`, `IDENTITY_REMOVED` (identity IDs only, never values).
+- Append-only `auditLogs` with hashed subject and IP (D-022), kept 12 months. Every event in `lib/domain/audit.ts` is emitted: account (`USER_CREATED`, `EMAIL_VERIFIED`, `LOGIN_SUCCESS`, `LOGIN_FAILED`, `LOGOUT`, `PASSWORD_RESET_REQUESTED`, `PASSWORD_RESET_COMPLETED`, `SESSIONS_REVOKED`, `RATE_LIMITED`, `ACCOUNT_SETTINGS_CHANGED`), identities (`IDENTITY_ADDED`, `IDENTITY_VERIFICATION_SENT`, `IDENTITY_VERIFIED`, `IDENTITY_REVEALED`, `IDENTITY_REMOVED`), scanning and exposures (`SCAN_STARTED`, `SCAN_COMPLETED`, `SCAN_FAILED`, `EXPOSURE_DETECTED`, `REMEDIATION_UPDATED`, `SENSITIVE_SOURCE_REVEALED`), monitoring and alerts (`MONITORING_ENABLED`, `MONITORING_DISABLED`, `NOTIFICATION_SENT`), privacy (`DATA_EXPORTED`, `ACCOUNT_DELETION_REQUESTED`, `ACCOUNT_DELETION_CANCELLED`, `ACCOUNT_DELETED`). Metadata holds IDs and categories only, never values. The account-deletion anonymiser is the one writer allowed to change rows (D-037).
 
 ## Known gaps
 

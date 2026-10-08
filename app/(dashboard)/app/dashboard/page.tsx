@@ -36,8 +36,9 @@ export const metadata: Metadata = { title: "Dashboard" };
  * "Am I exposed?" within seconds (spec 13.5): risk headline first, then what
  * to do, then detail. Every number comes from persisted state.
  */
-export default async function DashboardPage() {
+export default async function DashboardPage({ searchParams }: PageProps<"/app/dashboard">) {
   const user = await requireUser();
+  const restored = (await searchParams).restored === "1";
   const [identities, exposures, counts, risk, activity] = await Promise.all([
     listIdentities(user.id),
     listExposuresForUser(user.id),
@@ -66,6 +67,21 @@ export default async function DashboardPage() {
         description="What the sources know about your verified identities, and what to do next."
         action={anyDemo ? <DemoDataLabel /> : undefined}
       />
+
+      {restored ? (
+        <Callout
+          tone="ok"
+          role="status"
+          title="Your account is no longer scheduled for deletion."
+          action={
+            <Link href="/app/monitoring" className="text-sm text-accent underline underline-offset-4">
+              Turn monitoring back on
+            </Link>
+          }
+        >
+          Monitoring stayed off while deletion was pending. Turn it back on if you want scheduled checks.
+        </Callout>
+      ) : null}
 
       {identities.length === 0 ? (
         <EmptyState

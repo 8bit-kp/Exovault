@@ -64,7 +64,9 @@ export type AddIdentityResult =
 export type VerifyIdentityResult =
   { ok: true } | Blocked | { ok: false; reason: "not_found" | "already_verified" | "expired" | "invalid" };
 
-const aadFor = (identityId: Types.ObjectId | string) => `identity:${String(identityId)}`;
+/** Associated data binding an identifier's ciphertext to its identity record (spec 5.1). */
+export const identityAad = (identityId: Types.ObjectId | string) => `identity:${String(identityId)}`;
+const aadFor = identityAad;
 const blindIndex = (type: "email", normalized: string) =>
   keyedHash("identity-blind-index", `${type}:${normalized}`);
 const codeHash = (identityId: Types.ObjectId, code: string) =>

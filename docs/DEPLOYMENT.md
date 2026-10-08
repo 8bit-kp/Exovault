@@ -1,17 +1,38 @@
 # Deployment
 
-> Status: **Phase 10.** Not yet deployed anywhere; this describes what the code needs. It gets finalised and verified in Phase 13.
+> Status: **M3 complete (Phase 13).** Not deployed anywhere yet. This describes what the code needs, and the container images it ships with.
 
-## Topology (M1)
+## Topology
 
-| Component | Requirement                                                                                                                                                                                                                                                                                                                                |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Web app   | Node ≥ 22 (`npm run build && npm run start`) or a container. With `SCAN_QUEUE=bullmq` the web app only enqueues, so it can also run on serverless. With `SCAN_QUEUE=inline` (single server) it needs a long-running process. Serve over HTTPS, so the session cookie gets the `__Host-` prefix and HSTS applies.                           |
-| Worker    | **required when `SCAN_QUEUE=bullmq`**: a long-running container or VM running `npm run worker:build` then `node --conditions=react-server dist/worker.mjs`. It needs the same env as the web app. Scale it by running more instances; scheduling claims are atomic. It stops gracefully on SIGTERM (finishes in-flight scans, 30 s limit). |
-| MongoDB   | a managed cluster (e.g. Atlas) or an authenticated self-hosted instance. **Never an open instance.** Use a least-privilege user with read/write on the app database only. A standalone server works (no transactions needed, D-004).                                                                                                       |
-| Redis     | managed or self-hosted, with `maxmemory-policy noeviction` and auth/TLS. Used for rate limits and provider budgets now, BullMQ in M2. Rate limits **fail closed**, so Redis is required.                                                                                                                                                   |
-| Email     | a transactional provider's SMTP relay (`SMTP_HOST/PORT/SECURE/USER/PASSWORD`, `EMAIL_FROM` on a domain with SPF/DKIM).                                                                                                                                                                                                                     |
-| Proxy     | if a load balancer or CDN sits in front, set `TRUSTED_PROXY_COUNT` to the number of hops that append `X-Forwarded-For` (D-021).                                                                                                                                                                                                            |
+| Component | Requirement                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Web app   | Node ≥ 22 (`npm run build && npm run start`) or a container. With `SCAN_QUEUE=bullmq` the web app only enqueues, so it can also run on serverless. With `SCAN_QUEUE=inline` (single server) it needs a long-running process. Serve over HTTPS, so the session cookie gets the `__Host-` prefix and HSTS applies.                                                                                                                                                                             |
+| Worker    | **always required**: it alone runs scheduled monitoring, alert emails and the account purge, and with `SCAN_QUEUE=bullmq` every scan. A long-running container (`Dockerfile.worker`) or VM running `npm run worker:build` then `node --conditions=react-server dist/worker.mjs`; never a serverless function. It needs the same env as the web app. Scale it by running more instances; scheduling claims are atomic. It stops gracefully on SIGTERM (finishes in-flight scans, 30 s limit). |
+| MongoDB   | a managed cluster (e.g. Atlas) or an authenticated self-hosted instance. **Never an open instance.** Use a least-privilege user with read/write on the app database only. A standalone server works (no transactions needed, D-004).                                                                                                                                                                                                                                                         |
+| Redis     | managed or self-hosted, with `maxmemory-policy noeviction` and auth/TLS. Used for rate limits, provider budgets and the BullMQ queues. Rate limits **fail closed**, so Redis is required.                                                                                                                                                                                                                                                                                                    |
+| Email     | a transactional provider's SMTP relay (`SMTP_HOST/PORT/SECURE/USER/PASSWORD`, `EMAIL_FROM` on a domain with SPF/DKIM).                                                                                                                                                                                                                                                                                                                                                                       |
+| Proxy     | if a load balancer or CDN sits in front, set `TRUSTED_PROXY_COUNT` to the number of hops that append `X-Forwarded-For` (D-021).                                                                                                                                                                                                                                                                                                                                                              |
+
+## Container images (D-038)
+
+```bash
+docker build -t exovault-web .                              # Next standalone server, non-root, healthcheck on /
+docker build -f Dockerfile.worker -t exovault-worker .      # worker bundle + production dependencies
+docker run --env-file .env.production -p 3000:3000 exovault-web
+docker run --env-file .env.production exovault-worker
+```
+
+- Nothing secret is baked in. `.dockerignore` excludes `.env*` and `.git`, and the build needs no environment variables.
+- Configuration comes only from the runtime environment. Use the platform's secret store, not an `--env-file` on disk, in real deployments.
+- Run `npm run db:indexes` once per release from a machine or job with the same env.
+- CI builds both images on every push (not pushed to a registry).
+- `docker-compose.yml` stays dev-only (Redis + Mailpit). MongoDB runs outside Docker (spec 4.5).
+
+Suggested hosts:
+
+- **Web:** Vercel or any Node/container host. On serverless, use `SCAN_QUEUE=bullmq` so the request only enqueues.
+- **Worker:** Fly.io, Railway, Render or a VM.
+- **Data:** Atlas and a managed Redis with `noeviction`.
 
 ## Steps
 
@@ -20,8 +41,9 @@
 3. Choose `PROVIDER_MODE`:
    - `live` needs `HIBP_API_KEY` and `HIBP_REQUESTS_PER_MINUTE` matching the subscription.
    - `mock` labels everything "Demo data".
-4. Run `npm run db:indexes` once per release; production doesn't auto-create indexes (D-010).
-5. Start the server. Confirm the response headers (CSP with nonce, HSTS, nosniff, frame denial) and a sign-up round trip.
+4. Run `npm run db:indexes` once per release; production doesn't auto-create indexes (D-010). This creates the TTL indexes that enforce retention, and the unique indexes that keep sign-up bindings and pending deletions to one per user.
+5. Optionally tune `ACCOUNT_DELETION_GRACE_DAYS` (default 7) and `ACCOUNT_PURGE_MS` (default hourly). Update the `/privacy` page wording if you change the grace period's meaning; the number itself is read from env.
+6. Start the web app and the worker. Confirm the response headers (CSP with nonce, HSTS, nosniff, frame denial) and a sign-up round trip.
 
 ## Backups and moving from local MongoDB to Atlas (spec 4.5)
 

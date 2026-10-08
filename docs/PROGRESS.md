@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: 2026-10-07 (end of Phase 12)_
+_Last updated: 2026-10-08 (end of Phase 13: M3 complete)_
 
 ## Phase 0: Repository audit (done)
 
@@ -234,16 +234,43 @@ Screenshot review of every app page on desktop and mobile, with fixes (D-036):
 
 **Gate:** lint, format, typecheck (app + worker), 356 unit/component tests, 149 integration tests, worker build, 0 production-audit vulnerabilities. E2E: 121 passed and 1 failed in the full run; 2 are skipped by design. The failure was the mobile CSP check on `/design-system/app-shell`. It passed 3/3 when re-run alone and is recorded as an open flake.
 
-**Carried forward:** data export / account deletion workflow (spec 5.2), MFA, Dockerfiles (Phase 13), live HIBP key, investigate the CSP-spec flake.
+**Carried forward:** data export / account deletion workflow (spec 5.2), MFA, Dockerfiles (Phase 13), live HIBP key, investigate the CSP-spec flake (it did not recur in the Phase 13 full run).
+
+## Phase 13: Final QA and release (done, **M3 complete**)
+
+Built, so M3 meets the spec instead of listing gaps (D-037, D-038):
+
+- [x] **Data export** (spec 5.2): `POST /api/account/export` with an Origin check, 5/h; explicit fields, identifiers decrypted for their owner, no internals; audited
+- [x] **Account deletion** (spec 5.2):
+  - password re-entry and confirmation;
+  - immediate freeze: sessions, monitoring, queued scans, pending alerts;
+  - 7-day grace with restore on sign-in;
+  - a resumable worker purge across every collection, with the audit trail anonymised and a completion email
+- [x] `/app/settings/privacy`, `/auth/account-deletion`, notices on sign-in and on the dashboard
+- [x] Public pages `/how-it-works`, `/security`, `/privacy` (provider disclosure, spec 2.3), `/about`, linked from the header and footer; tables stack on phones
+- [x] `Dockerfile` (standalone, non-root, healthcheck), `Dockerfile.worker`, `.dockerignore`, and a CI job that builds both
+- [x] `npm run setup` (one command: secrets if missing → indexes → demo account); the seed never sends real email
+- [x] **Fixed:** `npm run db:indexes` skipped `pendingSignups` (Phase 11), so a production database would miss its TTL and unique indexes. A unit test now requires every model in that script.
+- [x] Docs checked against the code (an independent audit pass found 10 stale docs, now corrected), README rewritten with screenshots, architecture diagram, tech rationale, demo mode, limitations and roadmap
+
+**Gate (2026-10-08):**
+
+- lint ✓, format ✓, typecheck (app + worker) ✓
+- unit + component: 31 files, 357 tests ✓; integration + security: 17 files, 158 tests ✓
+- worker build ✓; production audit: 0 vulnerabilities ✓
+- E2E (production build, desktop + Pixel 7): **142 passed, 2 skipped by design, 0 failed**
+- Seed and demo mode checked: `npm run setup` on a fresh database, a demo sign-in, every app page at both sizes with no console errors, failed requests or horizontal scroll; results labelled "Demo data"
+
+**Not verified here:** `docker build` itself (the Docker daemon wasn't running on this machine). Each stage was reproduced in a clean copy of the repo instead, and CI builds both images (D-038).
 
 ## In progress
 
-None.
+None. All 13 phases are done.
 
 ## Blocked / needs owner input
 
 - **HIBP API key** (paid; Core 1 is enough for development). Needed only to run the live provider.
 
-## Next: Phase 13, final QA and release
+## Next (beyond the spec's milestones)
 
-Dockerfiles for web and worker, verified demo mode, docs checked against the running product, final QA pass, and the M3 report.
+Two-factor sign-in (TOTP, passkeys), the password-exposure checker (spec Part 11), phone and username identities, KMS-wrapped keys, a first real deployment (Atlas + managed Redis + a container host for the worker).

@@ -15,9 +15,10 @@ export const APP_NAV = [
 export type AppNavIcon = (typeof APP_NAV)[number]["icon"];
 
 export const MARKETING_NAV = [
-  { href: "/#how-it-works", label: "How it works" },
-  { href: "/#privacy", label: "Privacy" },
-  { href: "/#limitations", label: "Limitations" },
+  { href: "/how-it-works", label: "How it works" },
+  { href: "/security", label: "Security" },
+  { href: "/privacy", label: "Privacy" },
+  { href: "/about", label: "About" },
 ] as const;
 
 export const AUTH_ROUTES = {
@@ -26,4 +27,6 @@ export const AUTH_ROUTES = {
   verifyEmail: "/auth/verify-email",
   forgotPassword: "/auth/forgot-password",
   resetPassword: "/auth/reset-password",
+  /** Where a signed-in account with a pending deletion is held (spec 5.2). */
+  accountDeletion: "/auth/account-deletion",
 } as const;

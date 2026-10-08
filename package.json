@@ -20,6 +20,7 @@
     "test:integration": "vitest run --project integration",
     "keys:rotate": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/rotate-identity-keys.ts",
     "seed": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/seed.ts",
+    "setup": "tsx scripts/setup.ts",
     "worker": "tsx --conditions=react-server --env-file-if-exists=.env.local workers/index.ts",
     "worker:build": "esbuild workers/index.ts --bundle --platform=node --target=node22 --format=esm --packages=external --tsconfig=tsconfig.worker.json --outfile=dist/worker.mjs"
   },

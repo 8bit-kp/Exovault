@@ -76,3 +76,11 @@ jobs:
       - uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Both images must build from a clean context with no secrets (spec 4.4). Not pushed anywhere.
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build --tag exovault-web:ci .
+      - run: docker build --file Dockerfile.worker --tag exovault-worker:ci .

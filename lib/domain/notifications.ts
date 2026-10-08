@@ -14,7 +14,12 @@ export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
 export const NOTIFICATION_STATUSES = ["pending", "sending", "sent", "suppressed", "failed"] as const;
 export type NotificationStatus = (typeof NOTIFICATION_STATUSES)[number];
 
-export const SUPPRESSION_REASONS = ["email_disabled", "below_min_severity", "exposure_removed"] as const;
+export const SUPPRESSION_REASONS = [
+  "email_disabled",
+  "below_min_severity",
+  "exposure_removed",
+  "account_deletion",
+] as const;
 export type SuppressionReason = (typeof SUPPRESSION_REASONS)[number];
 
 export const DELIVERY_MODES = ["immediate", "digest"] as const;

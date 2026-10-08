@@ -1,6 +1,6 @@
 # Testing
 
-> Status: **Phase 11.** Every suite below runs locally and in CI. Automated tests use deterministic fixtures and mock providers only: no live breach APIs and no real third-party addresses.
+> Status: **M3 complete (Phase 13).** Every suite below runs locally and in CI. Automated tests use deterministic fixtures and mock providers only: no live breach APIs and no real third-party addresses.
 
 ## Suites
 
@@ -66,11 +66,19 @@ Isolation: tests set their own env (`tests/setup/test-env.ts`) and never read `.
 - Real rendering: no identifier or source in the subject, RFC 8058 headers.
 - Unsubscribe tokens (valid, forged, missing); inbox scoping; 90-day TTL.
 
+**Privacy** (`account-privacy.test.ts`, Phase 13)
+
+- Export: the owner's data in clear (identifier decrypted), no internal fields, nothing of another user's; audited; 6th export in an hour refused.
+- Deletion request: wrong password refused and audited; password guesses limited; freeze (sessions, monitoring, alerts) at once; the address held only encrypted; the date doesn't move on a repeat request.
+- Cancel during the grace period, once; a later purge leaves the account alone.
+- Purge: nothing before the date; afterwards every user collection and Better Auth row is gone, the other account is untouched, audit rows are unlinked, and **a scan of the whole database finds neither the address nor the user id**; one completion email; resumes after an email failure only once the claim is stale; a claimed purge can't be cancelled.
+- `db-indexes-coverage.test.ts` (unit): every model is in `npm run db:indexes`.
+
 **Phase 11 security tests**
 
 - `account-takeover.test.ts`: the full pre-account hijacking attack and the claim; nonce binding; codes refused for verified accounts; reset = mailbox proof.
 - `abuse-limits.test.ts`: per-target code budget across accounts; reveal and unsubscribe caps; sensitive names absent from detail and list models.
-- `log-leakage.test.ts`: real flows at trace level, scanning serialized log output for planted passwords, codes, tokens, identifiers and server keys.
+- `log-leakage.test.ts`: real flows at trace level, including export, account deletion and a purge whose emails fail with the address in the error, scanning serialized log output for planted passwords, codes, tokens, identifiers and server keys.
 - `hardening.test.ts`: request IDs, evidence URLs, strict ObjectIds, short GCM tags rejected, production refusing test secrets.
 - E2E `csrf.spec.ts`: a Server Action replayed with a foreign Origin is refused; framing denied; security.txt; deny-all CSP on `/api`.
 
@@ -89,10 +97,14 @@ Isolation: tests set their own env (`tests/setup/test-env.ts`) and never read `.
 - **Sessions and auth:** sign-out invalidation with a replayed cookie, forged cookie, password reset revoking sessions, open redirect, 6th sign-in refused.
 - **Cross-user URLs:** they reveal nothing (soft 404, D-025), and the SSE/JSON endpoints require the owner.
 - **Headers:** CSP nonce and headers on every page, no console CSP violations.
+- **Privacy** (`privacy.spec.ts`): download my data (a real file, the owner's address in it); the export endpoint refuses a foreign Origin (403) and no session (401); delete with a wrong then right password → signed out → sign-in notice and email → the app is closed except the restore page → "Keep my account" → back in.
+- **Public pages:** `/how-it-works`, `/security`, `/privacy`, `/about` get the same CSP and axe checks as every public page.
 - **Accessibility:** axe (WCAG 2.2 AA incl. contrast) on public and app pages, the skip link, and the mobile drawer.
 
 ## Notes
 
 - **Load sensitivity:** E2E journeys hash passwords (scrypt), so files with heavy auth run their tests in order, with generous post-submit timeouts. Locally, 4 workers run; in CI, 2.
 - **Per-test client IP:** each test sends its own `X-Forwarded-For`, simulating one trusted proxy (`TRUSTED_PROXY_COUNT=1`), so parallel tests don't share per-IP rate limits. A dedicated test proves the limit still triggers.
-- **Not yet covered:** a live E2E of an alert email through Mailpit. That needs a scheduled scan to fire inside a test, so integration covers it with the real email renderer instead. Data export and deletion aren't built yet.
+- **Not yet covered:** a live E2E of an alert email through Mailpit. That needs a scheduled scan to fire inside a test, so integration covers it with the real email renderer instead.
+- **Not covered end to end:** the purge itself in E2E, since it runs after a 7-day grace period. Integration tests drive it with an injected clock instead.
+- **Container images:** CI builds both Dockerfiles. They are not run in CI; DECISIONS D-038 records how each stage was checked locally.

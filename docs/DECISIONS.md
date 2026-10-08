@@ -418,3 +418,73 @@ Format: **Context → Options → Decision → Consequences.** Newest last. Stat
 - **Marketing and monitoring copy:** says email alerts exist (they shipped in Phase 10). The unused `NotYetAvailable` component is removed.
 
 **Consequences:** dates differ per user, so they must never sit in shared caches (they don't: all app pages are dynamic). The seeded account starts inside the manual-scan cooldown.
+
+## D-037 — Account deletion and data export (2026-10-08)
+
+**Context:** spec 5.2 requires deletion to be a real workflow (confirmation, re-authentication, grace period, queued purge, completion email, audit entry) and export to be a real JSON endpoint. MongoDB is standalone: no multi-document transactions.
+
+**Options:**
+
+- Delete immediately, or schedule.
+- Purge inside the request, or in the worker.
+- Export as GET, as POST, or as a Server Action.
+
+**Decision:**
+
+- **Request** (`/app/settings/privacy`):
+  - It takes the password, checked against the stored scrypt hash without creating a session, plus a confirmation tick. Re-entry is limited to 5 per 15 minutes per user.
+  - It creates one `accountDeletions` row per user (unique `userId`). Asking again keeps the first date.
+  - The account is frozen at once: monitoring off, queued scheduled scans cancelled, pending alerts suppressed (`account_deletion`), every session deleted.
+  - An email gives the purge date. The default is `ACCOUNT_DELETION_GRACE_DAYS=7`.
+- **Grace period:**
+  - `requireSession()` sends any session whose account has a pending deletion to `/auth/account-deletion`. That covers every app page and every Server Action, so nothing else can act for a frozen account.
+  - That page offers "Keep my account" (deletes the row and audits `ACCOUNT_DELETION_CANCELLED`) and one last export.
+  - Monitoring stays off after a restore; the dashboard says so.
+- **Purge** (worker job `account-purge`, every `ACCOUNT_PURGE_MS`, default 1 hour):
+  - It claims a due row by compare-and-set (`scheduled` → `purging`, `claimedAt`).
+  - Each step is an idempotent `deleteMany` scoped by `userId`: product collections, then Better Auth's `session`, `account` and reset-token `verification` rows, then the `user` row.
+  - It then anonymises the audit trail and sends the completion email. `ACCOUNT_DELETED` is recorded with no user reference, and the row itself is deleted.
+  - A crash or email failure leaves the row in `purging`. A run more than 15 minutes later takes it over and repeats the idempotent steps.
+  - After 5 attempts the purge finishes without the email rather than retrying forever.
+  - A claimed purge can no longer be cancelled.
+- **Address during the grace period:** the user row is deleted first, so the completion email needs the address from somewhere. It is kept AES-256-GCM encrypted on the deletion row (AAD `account-deletion:<userId>`) and removed with the row.
+- **Audit anonymisation:**
+  - `userId` and `subjectHash` are set to null on the user's rows, including failed sign-ins matched by the keyed hash of the address.
+  - `AuditLog` stays append-only for application code. This anonymiser, through the driver, is its one sanctioned writer.
+- **Export** (`POST /api/account/export`):
+  - It's a Route Handler, not a Server Action, because the response is a file. POST plus the explicit Origin check (`isSameOriginRequest`) stops cross-site triggering.
+  - It is limited to 5 per hour (each export decrypts identifiers) and audited as `DATA_EXPORTED`.
+  - Fields are listed explicitly. Identifiers are decrypted for their owner. No ciphertext, blind indexes, fingerprints, code hashes, dedupe keys or audit hashes.
+  - The client fetches the file and saves it as a blob, so errors show inline.
+
+**Consequences:**
+
+- Better Auth's sign-up OTP rows aren't keyed by user. They hold no user id and expire within 10 minutes, so the purge leaves them to their TTL.
+- BullMQ scan jobs hold only scan IDs; a job for a purged scan is a no-op.
+- Backups are outside the app. DEPLOYMENT.md says they must roll off within 35 days.
+
+## D-038 — Public information pages and container images (2026-10-08)
+
+**Context:**
+
+- Spec 13.3 lists `/how-it-works`, `/security`, `/privacy` and `/about`.
+- Spec 2.3 requires the provider disclosure on `/privacy`.
+- Spec 4.4 requires Dockerfiles for the web app and the worker.
+
+**Decision:**
+
+- **Pages:** the four pages share one reading layout (`components/marketing/info-page.tsx`). Their claims are checked against the code, e.g. password length comes from `PASSWORD_MIN_LENGTH` and the grace period from env. The header and footer link to them. `/pricing` and `/contact` are omitted, as the spec allows: contact is the `mailto:` link.
+- **Web image:**
+  - `Dockerfile` is a multi-stage build using Next's standalone output, run as the non-root `node` user, with a `fetch`-based healthcheck.
+  - Standalone output is opt-in through `NEXT_OUTPUT=standalone`, which only the Dockerfile sets, so `next start` (local, CI, E2E) is unchanged.
+- **Worker image:** `Dockerfile.worker` holds the esbuild bundle plus production dependencies, started with `--conditions=react-server`.
+- **Build context:** `.dockerignore` keeps `.env*`, `.git` and build output out. Images get configuration only at runtime.
+- **CI:** a `docker` job builds both images (not pushed).
+
+**Consequences:**
+
+- Docker wasn't running on the development machine, so the images themselves were first built in CI.
+- Locally, each stage was reproduced in a clean copy of the repo:
+  - `npm ci`, then the build with an empty environment;
+  - the standalone server run with fresh production secrets, serving pages, static files and the CSP;
+  - the worker started on production dependencies only and shut down cleanly on SIGTERM.

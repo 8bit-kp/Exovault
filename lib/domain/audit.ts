@@ -27,6 +27,7 @@ export const AUDIT_EVENTS = [
   "DATA_EXPORTED",
   "ACCOUNT_DELETION_REQUESTED",
   "ACCOUNT_DELETED",
+  "ACCOUNT_DELETION_CANCELLED",
 ] as const;
 export type AuditEvent = (typeof AUDIT_EVENTS)[number];
 

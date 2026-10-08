@@ -6,7 +6,10 @@ import { getAuthDb } from "@/lib/db/mongo-client";
 import { logger, setLogSink } from "@/lib/logging/logger";
 import { Identity } from "@/models/Identity";
 import { createMockProvider } from "@/server/providers/exposure/mock";
+import { setEmailProvider } from "@/server/providers/email";
+import { purgeDueAccounts, requestAccountDeletion } from "@/server/services/account/account-deletion-service";
 import * as account from "@/server/services/account/auth-service";
+import { exportAccountData } from "@/server/services/account/data-export-service";
 import { DEFAULT_RETRY_POLICY } from "@/server/services/exposure/resilience";
 import {
   addEmailIdentity,
@@ -26,6 +29,7 @@ import {
   latestCode,
   latestIdentityCode,
   latestResetToken,
+  outbox,
   setupAuthHarness,
 } from "../integration/helpers/auth-harness";
 
@@ -46,6 +50,7 @@ afterAll(() => {
   setLogSink(undefined);
   logger.level = previousLevel;
   setNotificationProvider(undefined);
+  setEmailProvider(outbox);
   configureScanProcessing({});
 });
 
@@ -119,6 +124,19 @@ describe("no secrets or identifiers in logs", () => {
     await dispatchDueNotifications();
     await unsubscribeWithToken("forged-token-with-junk");
 
+    // Privacy: export, a wrong then right deletion password, and a purge whose emails fail with PII in the error.
+    await exportAccountData({ id: userId, email, createdAt: new Date() }, { requestId: "r" });
+    await requestAccountDeletion({ id: userId, email }, "wrong-planted-password-77", { requestId: "r" });
+    setEmailProvider({
+      name: "rejecting",
+      send: async (message) => {
+        throw new Error(`550 mailbox ${message.to} unavailable`);
+      },
+    });
+    await requestAccountDeletion({ id: userId, email }, "planted-new-password-5512", { requestId: "r" });
+    await purgeDueAccounts(new Date(Date.now() + 30 * 24 * 60 * 60_000));
+    setEmailProvider(outbox);
+
     // Server-side secrets.
     const env = getEnv();
     planted.add(env.AUTH_SECRET).add(env.BLIND_INDEX_PEPPER);
@@ -129,6 +147,8 @@ describe("no secrets or identifiers in logs", () => {
     expect(output).toContain('"msg":"provider search failed"');
     expect(output).toContain('"msg":"alert send failed"');
     expect(output).toContain('"component":"better-auth"');
+    expect(output).toContain('"msg":"deletion-scheduled email failed"');
+    expect(output).toContain('"msg":"account purge failed"');
     for (const secret of planted) {
       expect(output.includes(secret), `log output contains a planted secret (${secret.slice(0, 4)}…)`).toBe(
         false,

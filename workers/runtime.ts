@@ -7,6 +7,7 @@ import {
   QUEUE_PREFIX,
   SCAN_QUEUE_NAME,
 } from "@/lib/redis/bullmq";
+import { purgeDueAccounts } from "@/server/services/account/account-deletion-service";
 import { runMonitoringTick } from "@/server/services/monitoring/monitoring-service";
 import { dispatchDueNotifications } from "@/server/services/notification/notification-service";
 import { createBullmqScanQueue, type ScanJobData } from "@/server/services/scan/bullmq-queue";
@@ -28,6 +29,7 @@ export interface RuntimeOptions {
   concurrency?: number;
   tickMs?: number;
   dispatchMs?: number;
+  purgeMs?: number;
   /** Run a monitoring tick immediately (reconcile overdue schedules after downtime). */
   tickOnStart?: boolean;
 }
@@ -53,10 +55,19 @@ export async function startWorkerRuntime(options: RuntimeOptions = {}): Promise<
   );
 
   const monitoringQueue = new Queue(MONITORING_QUEUE_NAME, { connection: createBullmqConnection(), prefix });
-  // One queue for periodic jobs: the monitoring tick and alert dispatch.
+  // One queue for periodic jobs: the monitoring tick, alert dispatch and the account purge.
+  const periodic: Record<string, () => Promise<unknown>> = {
+    tick: () => runMonitoringTick(),
+    dispatch: () => dispatchDueNotifications(),
+    purge: () => purgeDueAccounts(),
+  };
   const monitoringWorker = new Worker(
     MONITORING_QUEUE_NAME,
-    async (job) => (job.name === "dispatch" ? dispatchDueNotifications() : runMonitoringTick()),
+    async (job) => {
+      const run = periodic[job.name];
+      if (!run) throw new Error(`unknown periodic job "${job.name}"`);
+      return run();
+    },
     {
       connection: createBullmqConnection(),
       prefix,
@@ -74,6 +85,13 @@ export async function startWorkerRuntime(options: RuntimeOptions = {}): Promise<
     "notification-dispatch",
     { every: options.dispatchMs ?? env.NOTIFICATION_DISPATCH_MS },
     { name: "dispatch", opts: { removeOnComplete: { count: 100 }, removeOnFail: { age: 24 * 60 * 60 } } },
+  );
+
+  // Spec 5.2: accounts past their grace period are purged by this job (resumable, D-037).
+  await monitoringQueue.upsertJobScheduler(
+    "account-purge",
+    { every: options.purgeMs ?? env.ACCOUNT_PURGE_MS },
+    { name: "purge", opts: { removeOnComplete: { count: 100 }, removeOnFail: { age: 24 * 60 * 60 } } },
   );
 
   for (const worker of [scanWorker, monitoringWorker]) {
@@ -102,6 +120,7 @@ export async function startWorkerRuntime(options: RuntimeOptions = {}): Promise<
       await Promise.all([scanWorker.close(), monitoringWorker.close()]);
       await monitoringQueue.removeJobScheduler("monitoring-tick").catch(() => undefined);
       await monitoringQueue.removeJobScheduler("notification-dispatch").catch(() => undefined);
+      await monitoringQueue.removeJobScheduler("account-purge").catch(() => undefined);
       await Promise.all([monitoringQueue.close(), scanQueue.close()]);
       setScanQueue(undefined);
     },

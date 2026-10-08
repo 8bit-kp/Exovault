@@ -6,11 +6,13 @@ import { MongoClient } from "mongodb";
 import mongoose from "mongoose";
 import { getEnv } from "@/config/env";
 import { ensureAuthIndexes } from "@/lib/db/auth-indexes";
+import { AccountDeletion } from "@/models/AccountDeletion";
 import { AuditLog } from "@/models/AuditLog";
 import { Breach } from "@/models/Breach";
 import { Exposure } from "@/models/Exposure";
 import { Notification } from "@/models/Notification";
 import { NotificationPreference } from "@/models/NotificationPreference";
+import { PendingSignup } from "@/models/PendingSignup";
 import { ProviderState } from "@/models/ProviderState";
 import { RemediationAction } from "@/models/RemediationAction";
 import { RiskScore } from "@/models/RiskScore";
@@ -37,6 +39,8 @@ async function main() {
       RemediationAction,
       Notification,
       NotificationPreference,
+      PendingSignup,
+      AccountDeletion,
     ]) {
       const dropped = await model.syncIndexes();
       console.log(

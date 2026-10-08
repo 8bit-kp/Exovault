@@ -23,6 +23,11 @@ export default async function SignInPage({ searchParams }: PageProps<"/auth/sign
         </>
       }
     >
+      {params.deleted === "1" ? (
+        <Callout tone="info" role="status" title="Your account is scheduled for deletion." className="mb-4">
+          We emailed you the date. Sign in before then if you want to keep it.
+        </Callout>
+      ) : null}
       {params.reset === "1" ? (
         <Callout
           tone="ok"

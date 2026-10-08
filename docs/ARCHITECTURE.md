@@ -1,6 +1,6 @@
 # Architecture
 
-> Status: **Phase 10: M2 complete.** Built: exposure alerts and preferences (D-033), the BullMQ worker and scheduled monitoring (D-032), the timeline, exposure details and remediation (D-031), the dashboard and Exposure Risk Score ([RISK-SCORE.md](RISK-SCORE.md)), scanning (§5: persisted states, lock, cooldown, SSE progress), the exposure engine (§4), identities (encrypted storage, blind index, masking, ownership verification, onboarding; §6). Also built: the UI layer ([DESIGN-SYSTEM.md](DESIGN-SYSTEM.md)), `proxy.ts` (CSP, request ID, coarse `/app` redirect), and authentication ([SECURITY.md](SECURITY.md)): Server Actions → `server/services/account` → Better Auth in-process, Redis rate limits, audit log. Each section says whether it is **built** or **designed**. Nothing marked _designed_ exists in code yet.
+> Status: **M3 complete (Phase 13).** Every section below describes code that exists, unless it says _designed_ or _later_. Built: authentication ([SECURITY.md](SECURITY.md)), identities (§6), the exposure engine (§4), scanning (§5), the dashboard and Exposure Risk Score ([RISK-SCORE.md](RISK-SCORE.md)), exposure details and remediation, the BullMQ worker and scheduled monitoring, alerts and preferences, the timeline, data export and account deletion (§9), the public information pages, and container images (§7).
 
 ## 1. System overview
 
@@ -27,8 +27,8 @@
         ▲                         │
         │                         ▼
 ┌───────┴──────────────────────────────────────────┐
-│ Worker process (workers/index.ts, separate Node) │  M2: scheduled scans,
-│ shares server/* via path aliases                  │  notifications, purge jobs
+│ Worker process (workers/index.ts, separate Node) │  scans, scheduled monitoring,
+│ shares server/* via path aliases                  │  alert dispatch, account purge
 └───────────────────────────────────────────────────┘
 ```
 
@@ -44,7 +44,7 @@
 | `workers/**`                              | `server/**`, `lib/**`, `config/**`                            | be imported by `app/**`                                    |
 | `lib/domain/**`                           | nothing with I/O                                              | import server-only code                                    |
 
-## 3. Request pipeline (designed; spec 12.2)
+## 3. Request pipeline (**built**; spec 12.2)
 
 `request-ID → authenticate → authorize (ownership in the repository query) → rate-limit → validate (Zod, size limits) → service → DB/queue → typed response`.
 Errors map to safe categories (`not_found`, `rate_limited`, `invalid_input`, `conflict`, `unavailable`), with no stack traces and no enumeration. Another user's resource returns **not found**, never forbidden.
@@ -82,21 +82,31 @@ Key rotation: new writes use the active key id. `npm run keys:rotate` (`server/s
 
 ## 7. Process & runtime model
 
-| Process | Runs                                                                                  | Status                               |
-| ------- | ------------------------------------------------------------------------------------- | ------------------------------------ |
-| Web     | `next dev` / `next start`                                                             | scaffolded                           |
-| Worker  | `npm run worker` (dev, tsx) · `node --conditions=react-server dist/worker.mjs` (prod) | **built** (Phase 9, D-032)           |
-| MongoDB | local Community Server 8.2 standalone                                                 | running locally, connection verified |
-| Redis   | native 8.4 or `docker compose up -d`                                                  | available, unused until Phase 3      |
-| Mailpit | `docker compose up -d`                                                                | configured                           |
+| Process | Runs                                                                                                                      | Image                                |
+| ------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| Web     | `next dev` · `next start` · in the container, Next's standalone `server.js` (`NEXT_OUTPUT=standalone`)                    | `Dockerfile` (multi-stage, non-root) |
+| Worker  | `npm run worker` (dev, tsx) · `node --conditions=react-server dist/worker.mjs` (prod). Never inside serverless functions. | `Dockerfile.worker`                  |
+| MongoDB | local Community Server 8.2, standalone (D-004); managed or authenticated self-hosted in any deployment                    | not containerised by this repo       |
+| Redis   | native or `docker compose up -d`; BullMQ queues and every rate limit (`maxmemory-policy noeviction`)                      | `docker-compose.yml` (dev)           |
+| Mailpit | `docker compose up -d` or the native binary; dev and E2E email only                                                       | `docker-compose.yml` (dev)           |
 
-## 8. What exists today (Phase 1)
+The worker runs four kinds of job: scans (`scans` queue) and three periodic jobs on the `monitoring` queue, namely the monitoring tick, alert dispatch, and the account purge. `SCAN_QUEUE=inline` runs scans inside the web process instead, for single-process development. The periodic jobs only ever run in the worker, so scheduled monitoring, alert emails and the account purge need it running whatever `SCAN_QUEUE` is set to.
 
-- `config/brand.ts`: product identity in one place.
-- `config/env.ts`: Zod-validated env, fail-fast, value-free error messages.
-- `lib/domain/exposure.ts`: shared enums and `isActiveExposure`.
-- `lib/logging/logger.ts`: pino with central redaction.
-- `lib/db/mongoose.ts`: cached connection, `sanitizeFilter`, `strictQuery`, no prod auto-index.
-- `server/providers/exposure/interface.ts`: provider contract.
-- `scripts/env-init.ts`, `docker-compose.yml`, `.github/workflows/ci.yml`, `.github/dependabot.yml`.
-- Unit tests for env validation, log redaction, and the active-exposure definition.
+## 8. Request-scoped display timezone
+
+Dates are rendered on the server. `requireSession()` loads the user's timezone from their notification preferences into a per-request store (`lib/auth/request-timezone.ts`, React `cache`), and the formatters in `lib/utils/format.ts` read it by default. Code outside a request (worker, scripts, tests) formats in UTC. Emails pass the recipient's timezone explicitly (D-036).
+
+## 9. Account lifecycle: export and deletion (**built**, Phase 13; spec 5.2, D-037)
+
+```text
+/app/settings/privacy ── POST /api/account/export (Origin check, 5/h) ──▶ JSON file, audited
+          │
+          └─ password + confirm ──▶ accountDeletions{scheduled} ── freeze: sessions deleted,
+                                     monitoring off, queued scans cancelled, alerts suppressed
+                                              │
+             sign in during grace ──▶ /auth/account-deletion ──▶ "Keep my account" (row deleted)
+                                              │ purgeAfter (ACCOUNT_DELETION_GRACE_DAYS)
+                                              ▼
+             worker account-purge: claim (CAS) ─▶ idempotent deletes ─▶ auth rows ─▶ anonymise
+             audit ─▶ completion email ─▶ ACCOUNT_DELETED ─▶ row deleted (stale claims resumed)
+```

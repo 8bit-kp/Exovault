@@ -13,6 +13,8 @@ import { closeMongoClient, getAuthDb } from "@/lib/db/mongo-client";
 import { connectToDatabase, disconnectFromDatabase } from "@/lib/db/mongoose";
 import { closeRedis } from "@/lib/redis/client";
 import { Exposure } from "@/models/Exposure";
+import { setEmailProvider } from "@/server/providers/email";
+import { memoryEmailProvider } from "@/server/providers/email/memory";
 import { addEmailIdentity, listIdentities } from "@/server/services/identity/identity-service";
 import { createInProcessQueue } from "@/server/services/scan/queue";
 import {
@@ -30,6 +32,8 @@ async function main() {
   if (env.PROVIDER_MODE !== "mock")
     throw new Error("Seeding needs PROVIDER_MODE=mock (demo providers, no real lookups).");
   await connectToDatabase();
+  // The demo address is fictional: nothing the seed triggers (e.g. the sign-up code) is really emailed.
+  setEmailProvider(memoryEmailProvider());
 
   const users = getAuthDb().collection("user");
   let password: string | null = null;

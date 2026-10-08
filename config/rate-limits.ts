@@ -58,4 +58,10 @@ export const RATE_LIMITS = {
   revealPerUser: { name: "reveal:user", limit: 30, windowMs: HOUR, failClosed: true },
   unsubscribePerIp: { name: "unsubscribe:ip", limit: 20, windowMs: HOUR, failClosed: true },
   scanStreamsPerUser: { name: "scan-stream:user", limit: 30, windowMs: 5 * MINUTE, failClosed: true },
+
+  // Phase 13: account privacy (spec 5.2).
+  // Password re-entry before deleting the account: same budget as sign-in, per user.
+  reauthPerUser: { name: "reauth:user", limit: 5, windowMs: 15 * MINUTE, failClosed: true },
+  // Each export decrypts every identifier: a few an hour is plenty.
+  dataExportPerUser: { name: "data-export:user", limit: 5, windowMs: HOUR, failClosed: true },
 } as const satisfies Record<string, RateLimitRule>;

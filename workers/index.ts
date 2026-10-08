@@ -1,9 +1,10 @@
 /**
  * Exovault worker: a separate long-running Node process (spec 4.2). Runs
- * scans from the BullMQ "scans" queue and the scheduled-monitoring tick.
+ * scans from the BullMQ "scans" queue, the scheduled-monitoring tick, alert
+ * dispatch and the account purge (spec 5.2).
  *
  *   dev:  npm run worker            (tsx, reads .env.local)
- *   prod: npm run worker:build && node --conditions=react-server dist/worker.js
+ *   prod: npm run worker:build && node --conditions=react-server dist/worker.mjs
  */
 import { getEnv } from "@/config/env";
 import { closeMongoClient } from "@/lib/db/mongo-client";

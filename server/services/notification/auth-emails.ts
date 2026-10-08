@@ -105,3 +105,39 @@ export function identityVerificationMessage(to: string, code: string): EmailMess
     ]),
   };
 }
+
+/** Spec 5.2: deletion is scheduled, not immediate. Says how to undo it and what happens meanwhile. */
+export function accountDeletionScheduledMessage(
+  to: string,
+  purgeDate: string,
+  signInUrl: string,
+): EmailMessage {
+  return {
+    kind: "account-deletion-scheduled",
+    to,
+    subject: `Your ${brand.name} account is scheduled for deletion`,
+    ...layout(
+      [
+        `You asked us to delete your ${brand.name} account. It will be permanently deleted on ${purgeDate}.`,
+        "Until then, monitoring is off, no alerts are sent, and every session has been signed out.",
+        "Changed your mind? Sign in before that date and choose to keep your account.",
+        "If you didn't ask for this, sign in and keep your account, then reset your password.",
+      ],
+      { label: "Sign in", url: signInUrl },
+    ),
+  };
+}
+
+/** The last email we send: confirms the purge finished. */
+export function accountDeletedMessage(to: string): EmailMessage {
+  return {
+    kind: "account-deleted",
+    to,
+    subject: `Your ${brand.name} account has been deleted`,
+    ...layout([
+      `Your ${brand.name} account and everything in it have been deleted: monitored addresses, exposures, scans, alerts and settings.`,
+      "Our security log keeps a record that an account was deleted, with nothing that identifies you. Backups that may still hold your data expire within 35 days.",
+      "We won't email you again.",
+    ]),
+  };
+}
