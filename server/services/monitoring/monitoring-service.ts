@@ -2,15 +2,17 @@ import mongoose, { Types } from "mongoose";
 import { recordAuditEvent } from "@/lib/audit";
 import { connectToDatabase } from "@/lib/db/mongoose";
 import {
+  availableFrequencies,
   computeNextScanAt,
   firstScheduledScanAt,
-  MONITORING_FREQUENCIES,
   type MonitoringFrequency,
   type MonitoringState,
 } from "@/lib/domain/monitoring";
 import { logger } from "@/lib/logging/logger";
 import { Identity } from "@/models/Identity";
 import { Scan } from "@/models/Scan";
+import { cronIntervalMinutes } from "@/config/scheduler";
+import type { ScanQueue } from "@/server/services/scan/queue";
 import { startScheduledScan } from "@/server/services/scan/scan-service";
 
 /**
@@ -42,9 +44,10 @@ export async function enableMonitoring(
   frequency: unknown,
   ctx: Ctx,
   now = new Date(),
+  // Only what this deployment's scheduler can honour (D-039); tests pass it explicitly.
+  allowed: readonly MonitoringFrequency[] = availableFrequencies(cronIntervalMinutes()),
 ): Promise<MonitoringResult> {
-  if (!MONITORING_FREQUENCIES.includes(frequency as MonitoringFrequency))
-    return { ok: false, reason: "invalid_frequency" };
+  if (!allowed.includes(frequency as MonitoringFrequency)) return { ok: false, reason: "invalid_frequency" };
   const _id = objectId(identityId);
   if (!_id) return { ok: false, reason: "not_found" };
   await connectToDatabase();
@@ -114,13 +117,15 @@ export async function disableMonitoring(
 export async function claimDueIdentities(
   now = new Date(),
   limit = 100,
+  /** Claim identities due up to this time (a cron claims a little ahead; see `cronDueBy`). */
+  dueBy: Date = now,
 ): Promise<Array<{ userId: string; identityId: string }>> {
   await connectToDatabase();
   const due = await Identity.find({
     status: "active",
     verificationStatus: "verified",
     "monitoring.enabled": true,
-    "monitoring.nextScanAt": mongoose.trusted({ $lte: now }),
+    "monitoring.nextScanAt": mongoose.trusted({ $lte: dueBy }),
   })
     .select({ userId: 1, "monitoring.frequency": 1, "monitoring.nextScanAt": 1 })
     .sort({ "monitoring.nextScanAt": 1 })
@@ -145,12 +150,15 @@ export async function claimDueIdentities(
 }
 
 /** One scheduler tick: claim due identities and start their scans. Safe to run concurrently. */
-export async function runMonitoringTick(now = new Date()): Promise<{ claimed: number; started: number }> {
-  const claimed = await claimDueIdentities(now);
+export async function runMonitoringTick(
+  now = new Date(),
+  options: { dueBy?: Date; queue?: ScanQueue } = {},
+): Promise<{ claimed: number; started: number }> {
+  const claimed = await claimDueIdentities(now, 100, options.dueBy ?? now);
   let started = 0;
   for (const { userId, identityId } of claimed) {
     try {
-      const result = await startScheduledScan(userId, identityId, now);
+      const result = await startScheduledScan(userId, identityId, now, options.queue);
       if (result.ok && !result.reused) started += 1;
     } catch (error) {
       logger.error(

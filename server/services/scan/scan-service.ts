@@ -1,5 +1,7 @@
 import "server-only";
 import { Types } from "mongoose";
+// The explicit file: the worker bundle runs under Node ESM, which can't resolve the extensionless subpath.
+import { after } from "next/server.js";
 import { RATE_LIMITS } from "@/config/rate-limits";
 import { recordAuditEvent } from "@/lib/audit";
 import { connectToDatabase } from "@/lib/db/mongoose";
@@ -59,10 +61,35 @@ let processorOptions: { providers?: ExposureProvider[]; policy?: RetryPolicy } =
 
 export function getScanQueue(): ScanQueue {
   globalCache.__exovaultScanQueue ??=
-    getEnv().SCAN_QUEUE === "bullmq"
-      ? createBullmqScanQueue()
-      : createInProcessQueue((scanId) => processScan(scanId));
+    getEnv().SCAN_QUEUE === "bullmq" ? createBullmqScanQueue() : createRequestScopedQueue();
   return globalCache.__exovaultScanQueue;
+}
+
+/**
+ * Inline scans (D-039). Inside a request, the scan runs in `after()`, so a
+ * serverless platform keeps the function alive until it finishes instead of
+ * freezing it once the response is sent. Outside a request (scripts, tests)
+ * `after()` throws, and the scan goes to a plain in-process queue.
+ */
+function createRequestScopedQueue(): ScanQueue {
+  const local = createInProcessQueue((scanId) => processScan(scanId));
+  return {
+    enqueue(scanId) {
+      try {
+        after(() =>
+          processScan(scanId).catch((error: unknown) =>
+            logger.error(
+              { scanId, err: error instanceof Error ? error.name : "unknown" },
+              "scan processing crashed",
+            ),
+          ),
+        );
+      } catch {
+        local.enqueue(scanId);
+      }
+    },
+    drain: () => local.drain(),
+  };
 }
 
 /** Test seam: use a specific queue (e.g. BullMQ with an isolated prefix). */
@@ -99,6 +126,7 @@ async function createAndEnqueue(input: {
   providers: ExposureProvider[];
   retryOfScanId?: Types.ObjectId;
   ctx: Ctx;
+  queue?: ScanQueue;
 }): Promise<StartScanResult> {
   try {
     const scan = await insertScan({
@@ -119,7 +147,7 @@ async function createAndEnqueue(input: {
       requestId: input.ctx.requestId,
       metadata: { scanId, identityId: input.identityId.toHexString(), trigger: input.trigger },
     });
-    getScanQueue().enqueue(scanId);
+    (input.queue ?? getScanQueue()).enqueue(scanId);
     return { ok: true, scanId, reused: false };
   } catch (error) {
     if (!(error instanceof ActiveScanExistsError)) throw error;
@@ -167,6 +195,8 @@ export async function startScheduledScan(
   userId: string,
   identityId: string,
   now = new Date(),
+  /** A specific queue (the cron run waits on its own scans); defaults to the configured one. */
+  queue?: ScanQueue,
 ): Promise<StartScanResult> {
   const identity = await getIdentity(userId, identityId);
   if (!identity) return { ok: false, reason: "not_found" };
@@ -181,6 +211,7 @@ export async function startScheduledScan(
     trigger: "scheduled",
     providers: providersFor(),
     ctx: { requestId: null },
+    queue,
   });
 }
 

@@ -90,6 +90,8 @@ Key rotation: new writes use the active key id. `npm run keys:rotate` (`server/s
 | Redis   | native or `docker compose up -d`; BullMQ queues and every rate limit (`maxmemory-policy noeviction`)                      | `docker-compose.yml` (dev)           |
 | Mailpit | `docker compose up -d` or the native binary; dev and E2E email only                                                       | `docker-compose.yml` (dev)           |
 
+**Without a worker (`SCHEDULER=cron`, e.g. Vercel; D-039):** scans run in the request via `after()`, and a platform cron calls `/api/cron/run`, which does the three periodic jobs in one pass. It awaits the scans it starts before dispatching alerts. The monitoring page offers only frequencies the cron interval can honour.
+
 The worker runs four kinds of job: scans (`scans` queue) and three periodic jobs on the `monitoring` queue, namely the monitoring tick, alert dispatch, and the account purge. `SCAN_QUEUE=inline` runs scans inside the web process instead, for single-process development. The periodic jobs only ever run in the worker, so scheduled monitoring, alert emails and the account purge need it running whatever `SCAN_QUEUE` is set to.
 
 ## 8. Request-scoped display timezone

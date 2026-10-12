@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: 2026-10-08 (end of Phase 13: M3 complete)_
+_Last updated: 2026-10-12 (Vercel deployment support, D-039)_
 
 ## Phase 0: Repository audit (done)
 
@@ -262,6 +262,17 @@ Built, so M3 meets the spec instead of listing gaps (D-037, D-038):
 - Seed and demo mode checked: `npm run setup` on a fresh database, a demo sign-in, every app page at both sizes with no console errors, failed requests or horizontal scroll; results labelled "Demo data"
 
 **Not verified here:** `docker build` itself (the Docker daemon wasn't running on this machine). Each stage was reproduced in a clean copy of the repo instead, and CI builds both images (D-038).
+
+## After M3: Vercel deployment support (done, D-039)
+
+- [x] `SCHEDULER=cron`:
+  - `/api/cron/run` (bearer secret) runs the monitoring tick, waits for its scans, dispatches alerts, then purges; `vercel.json` schedules it daily;
+  - inline scans run in `after()`;
+  - the claim window keeps a daily cron from skipping jittered schedules.
+- [x] The UI offers only frequencies the cron can honour, and says when checks and summaries happen; the server enforces the same.
+- [x] Mongoose pool capped at 10 for serverless.
+- [x] Vercel guide with every environment variable (DEPLOYMENT.md).
+- [x] Tests: unit (scheduler helpers, cron auth, env rules), integration (`scheduled-jobs.test.ts`); a production server checked in cron mode.
 
 ## In progress
 

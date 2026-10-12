@@ -15,9 +15,12 @@ const field = "h-10 rounded-md border border-line-strong bg-bg px-2 text-sm text
 export function PreferencesForm({
   initial,
   timezones,
+  digestTiming = "08:00 your time",
 }: {
   initial: NotificationPreferences;
   timezones: string[];
+  /** When the daily summary actually goes out on this deployment (D-039). */
+  digestTiming?: string;
 }) {
   const [state, action] = useActionState(savePreferencesAction, IDLE);
   const [timezone, setTimezone] = useState(initial.timezone);
@@ -83,7 +86,7 @@ export function PreferencesForm({
               defaultChecked={initial.mode === "digest"}
               className="accent-(--ev-accent)"
             />
-            One daily summary (08:00 your time)
+            One daily summary ({digestTiming})
           </label>
           {error("mode")}
         </fieldset>

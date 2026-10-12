@@ -62,7 +62,7 @@ test("delete my account: password re-entry, signed out, restorable by signing in
   await page.getByRole("button", { name: "Delete my account" }).click();
   await expect(page).toHaveURL(/\/auth\/sign-in\?deleted=1$/, AFTER_SUBMIT);
   await expect(page.getByText("Your account is scheduled for deletion.")).toBeVisible();
-  const notice = await waitForEmail(email, "scheduled for deletion");
+  const notice = await waitForEmail(email, "scheduled for deletion", AFTER_SUBMIT.timeout);
   expect(notice).toContain("Sign in before that date");
 
   // Signed out: the app is closed to this browser.

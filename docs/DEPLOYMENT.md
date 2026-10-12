@@ -13,6 +13,71 @@
 | Email     | a transactional provider's SMTP relay (`SMTP_HOST/PORT/SECURE/USER/PASSWORD`, `EMAIL_FROM` on a domain with SPF/DKIM).                                                                                                                                                                                                                                                                                                                                                                       |
 | Proxy     | if a load balancer or CDN sits in front, set `TRUSTED_PROXY_COUNT` to the number of hops that append `X-Forwarded-For` (D-021).                                                                                                                                                                                                                                                                                                                                                              |
 
+## Vercel only, with Vercel Cron (D-039)
+
+No second host: the web app runs on Vercel, scans run inside the request (`after()`), and Vercel Cron calls `GET /api/cron/run` for monitoring, alerts and the account purge.
+
+**1. Services to create (all have free tiers):**
+
+| Service                        | What to set up                                                                                                                                                                                                                                                                |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| MongoDB Atlas (M0)             | A cluster in the region nearest your Vercel functions (default `iad1`, i.e. AWS us-east-1). A database user with `readWrite` on `exovault` only. Network Access: `0.0.0.0/0`, because Vercel has no fixed IPs on Hobby. So the user's long random password is the protection. |
+| Redis (Upstash or Redis Cloud) | One database; copy the TLS URL (`rediss://default:<password>@<host>:6379`). Only rate limits use it in this mode, so traffic is tiny.                                                                                                                                         |
+| SMTP                           | Brevo (no domain needed: verify one sender address; `smtp-relay.brevo.com:587`) or Resend (needs a verified domain to email anyone but yourself; `smtp.resend.com:465`, user `resend`, password = API key).                                                                   |
+
+**2. Environment variables** (Vercel → Project → Settings → Environment Variables, scope **Production**):
+
+| Variable                                                              | Value                                                                                                                        |
+| --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `APP_URL`                                                             | `https://<your-project>.vercel.app`, the exact production URL with no trailing slash                                         |
+| `MONGODB_URI`                                                         | Atlas URI **with `/exovault`**: `mongodb+srv://<user>:<password>@<cluster>.mongodb.net/exovault?retryWrites=true&w=majority` |
+| `MONGODB_URI_TEST`                                                    | same cluster, database `exovault_test` (validated at startup, never used in production)                                      |
+| `REDIS_URL`                                                           | the `rediss://…` URL                                                                                                         |
+| `IDENTIFIER_ENCRYPTION_KEYS`                                          | `v1:` + `openssl rand -base64 32`                                                                                            |
+| `IDENTIFIER_ENCRYPTION_ACTIVE_KEY_ID`                                 | `v1`                                                                                                                         |
+| `BLIND_INDEX_PEPPER`                                                  | `openssl rand -base64 32`                                                                                                    |
+| `AUTH_SECRET`                                                         | `openssl rand -hex 32`                                                                                                       |
+| `SCHEDULER`                                                           | `cron`                                                                                                                       |
+| `SCAN_QUEUE`                                                          | `inline`                                                                                                                     |
+| `CRON_SECRET`                                                         | `openssl rand -hex 32`                                                                                                       |
+| `CRON_INTERVAL_MINUTES`                                               | `1440` (matches the daily schedule in `vercel.json`; Hobby allows at most daily)                                             |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD` | from the SMTP provider (`SMTP_SECURE=true` only for port 465)                                                                |
+| `EMAIL_FROM`                                                          | `Exovault <the-verified-sender@…>`                                                                                           |
+| `TRUSTED_PROXY_COUNT`                                                 | `1` (Vercel's edge sets `X-Forwarded-For`)                                                                                   |
+| `PROVIDER_MODE`                                                       | `mock` (labelled demo data), or `live` plus `HIBP_API_KEY` and `HIBP_REQUESTS_PER_MINUTE`                                    |
+| `PASSWORD_BREACH_CHECK`                                               | `on`                                                                                                                         |
+
+Leave unset: `NODE_ENV` (Vercel sets it), `EXOVAULT_ALLOW_TEST_SECRETS`, `NEXT_OUTPUT`, `WORKER_*`, `MONITORING_TICK_MS`, `NOTIFICATION_DISPATCH_MS`, `ACCOUNT_PURGE_MS` (worker only). The secrets must be **new values**, not the ones in your `.env.local`, and must never change once data exists. Losing `IDENTIFIER_ENCRYPTION_KEYS` makes stored addresses unreadable.
+
+**3. Create the indexes (and optionally the demo account) once, from your machine,** with the production values:
+
+```bash
+npx vercel link && npx vercel env pull .env.production.local --environment=production
+set -a; source .env.production.local; set +a
+npm run db:indexes
+npm run seed            # optional: demo@exovault.example with fictional data; needs PROVIDER_MODE=mock
+rm .env.production.local
+```
+
+**4. Deploy:**
+
+- Import the GitHub repo in Vercel. The framework preset is Next.js, the build command is `npm run build`, and Node 22 is used (`engines`).
+- `vercel.json` registers the cron (`0 6 * * *`, daily at 06:00 UTC; Hobby runs it within that hour).
+
+**5. Check:**
+
+- Sign up on the production URL and confirm the code email arrives.
+- Run a scan.
+- In Vercel → Settings → Cron Jobs, press **Run** once. The response is a JSON summary, and `401` without the secret.
+
+**What changes compared with the worker:**
+
+- Monitoring offers "Daily" only, and the page says checks run once a day.
+- Alerts and the daily summary go out with the daily run (the settings page says "at the first scheduled run after 08:00").
+- The account purge runs daily.
+- Preview deployments have a different URL than `APP_URL`, so sign-in and Origin checks fail there by design. Test on the production URL.
+- On Vercel Pro, set the cron to `*/15 * * * *` and `CRON_INTERVAL_MINUTES=15`; every frequency becomes available.
+
 ## Container images (D-038)
 
 ```bash

@@ -113,4 +113,19 @@ describe("parseEnv", () => {
     expect(issues.length).toBeGreaterThan(0);
     expect(issues.join("\n")).not.toContain(planted);
   });
+
+  it("defaults to the worker scheduler, and requires a cron secret and inline scans for SCHEDULER=cron", () => {
+    expect(parseEnv(validSource()).SCHEDULER).toBe("worker");
+    expect(issuesFor(validSource({ SCHEDULER: "cron" })).join("\n")).toContain("CRON_SECRET is required");
+    expect(issuesFor(validSource({ SCHEDULER: "cron", CRON_SECRET: "short" })).join("\n")).toContain(
+      "CRON_SECRET must be at least 32 characters",
+    );
+    expect(
+      issuesFor(validSource({ SCHEDULER: "cron", CRON_SECRET: "c".repeat(40), SCAN_QUEUE: "bullmq" })).join(
+        "\n",
+      ),
+    ).toContain("SCAN_QUEUE must be inline");
+    const env = parseEnv(validSource({ SCHEDULER: "cron", CRON_SECRET: "c".repeat(40) }));
+    expect(env.CRON_INTERVAL_MINUTES).toBe(1440);
+  });
 });

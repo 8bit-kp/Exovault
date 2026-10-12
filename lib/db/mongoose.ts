@@ -29,6 +29,9 @@ export function connectToDatabase(uri: string = defaultDatabaseUri()): Promise<t
       // Indexes are created explicitly by `npm run db:indexes`, never implicitly in production.
       autoIndex: getEnv().NODE_ENV !== "production",
       serverSelectionTimeoutMS: 5_000,
+      // Serverless platforms run many short-lived instances; keep each one's share of the
+      // database's connection limit small (Atlas M0 allows 500). Matches lib/db/mongo-client.ts.
+      maxPoolSize: 10,
     })
     .catch((error: unknown) => {
       cache.promise = undefined;

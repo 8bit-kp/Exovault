@@ -7,7 +7,9 @@ import { MonitoringStatus } from "@/components/monitoring/monitoring-status";
 import { ButtonLink } from "@/components/ui/button";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { EmptyState } from "@/components/ui/states";
+import { cronIntervalMinutes } from "@/config/scheduler";
 import { requireUser } from "@/lib/auth/session";
+import { availableFrequencies, describeCronInterval } from "@/lib/domain/monitoring";
 import { listIdentities } from "@/server/services/identity/identity-service";
 import { getMonitoringView } from "@/server/services/monitoring/monitoring-service";
 
@@ -17,6 +19,8 @@ export default async function MonitoringPage() {
   const user = await requireUser();
   const verified = (await listIdentities(user.id)).filter((i) => i.verification === "verified");
   const views = await Promise.all(verified.map((i) => getMonitoringView(user.id, i.id)));
+  const interval = cronIntervalMinutes();
+  const frequencies = availableFrequencies(interval);
 
   return (
     <div className="space-y-8">
@@ -51,7 +55,14 @@ export default async function MonitoringPage() {
                 identityId={identity.id}
                 enabled={view.state !== "off"}
                 frequency={view.frequency}
+                frequencies={frequencies}
               />
+              {interval !== null ? (
+                <p className="text-xs text-fg-subtle">
+                  On this deployment, scheduled checks run {describeCronInterval(interval)}. Each check
+                  happens at the first run after it&apos;s due, and alerts go out in the same run.
+                </p>
+              ) : null}
               <p className="text-xs text-fg-subtle">
                 New findings during monitoring are emailed to you according to your{" "}
                 <Link href="/app/settings/notifications" className="text-accent underline underline-offset-4">

@@ -488,3 +488,46 @@ Format: **Context → Options → Decision → Consequences.** Newest last. Stat
   - `npm ci`, then the build with an empty environment;
   - the standalone server run with fresh production secrets, serving pages, static files and the CSP;
   - the worker started on production dependencies only and shut down cleanly on SIGTERM.
+
+## D-039 — Running on Vercel without a worker (2026-10-12)
+
+**Context:**
+
+- The owner wants to deploy to Vercel only.
+- Vercel can't host the long-running BullMQ worker, which ran scheduled monitoring, alert dispatch, the account purge, and (with `SCAN_QUEUE=bullmq`) every scan.
+- Fire-and-forget inline scans aren't safe on serverless either: the function can be frozen once the response is sent.
+
+**Options:**
+
+1. Worker on a second host (Railway/Render).
+2. Vercel only, with Vercel Cron.
+3. Vercel only, with manual scans and no scheduled work.
+
+The owner chose 2.
+
+**Decision:**
+
+- **Scheduler setting:** `SCHEDULER=worker|cron` (default `worker`, unchanged). With `cron`:
+  - `CRON_SECRET` is required, and `SCAN_QUEUE` must be `inline` (validated at startup).
+  - `CRON_INTERVAL_MINUTES` states the cron's cadence.
+- **Inline scans** call `after()` (from `next/server.js`, so the worker's Node ESM bundle resolves it too), which keeps the function alive until the scan finishes. Outside a request, `after()` throws and the scan goes to the in-process queue, as before.
+- **Cron route:** `GET /api/cron/run` checks the bearer secret in constant time, then runs `runScheduledJobs`:
+  - the monitoring tick, with its own in-process queue whose scans are awaited;
+  - alert dispatch, on a fresh clock so this run's alerts are due;
+  - the account purge.
+  - `maxDuration` is 300 s. `vercel.json` schedules it daily (the Hobby maximum).
+- **Claim window:** a cron claims identities due within the next half interval (`cronDueBy`). Otherwise a ±10% jittered "Daily" schedule would regularly miss a run and wait two days.
+- **Honest UI:**
+  - The monitoring page offers only frequencies at least as long as the cron interval (`availableFrequencies`); `enableMonitoring` enforces the same list on the server.
+  - The page and the alert settings say when checks and summaries really happen.
+- **Connection pools:** Mongoose's pool is capped at 10 per instance, like the auth client, to stay within Atlas's connection limit across serverless instances.
+
+**Consequences:**
+
+- On Hobby, monitoring is daily, alerts arrive with the daily run, and the purge can lag by up to a day. On Pro, a 15-minute cron restores every frequency.
+- The worker path is unchanged, and both paths share every service.
+- **Verified:**
+  - unit tests (frequencies, claim window, bearer check, env rules);
+  - integration tests (a due identity is scanned and alerted in one run, not-yet-due ones are left, a due deletion is purged, frequencies are enforced);
+  - a production server in cron mode: manual scan via `after()`, cron 401/200, a scheduled scan completed;
+  - the built worker still starts.

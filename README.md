@@ -133,7 +133,9 @@ CI runs all of these plus a production dependency audit, a gitleaks secret scan,
 
 ## Deploying
 
-The web image (`Dockerfile`) is Next's standalone server. The worker image (`Dockerfile.worker`) holds the worker bundle and production dependencies. You need a managed or authenticated MongoDB, a Redis with `noeviction`, an SMTP relay, and HTTPS. See [Deployment](docs/DEPLOYMENT.md) for the full checklist, backups and the Atlas migration path.
+**Vercel (no second host):** set `SCHEDULER=cron` and `SCAN_QUEUE=inline`, add Atlas, a hosted Redis and an SMTP relay, and `vercel.json` schedules the daily cron. The step-by-step guide and every environment variable are in [Deployment → Vercel](docs/DEPLOYMENT.md#vercel-only-with-vercel-cron-d-039).
+
+**Containers:** The web image (`Dockerfile`) is Next's standalone server. The worker image (`Dockerfile.worker`) holds the worker bundle and production dependencies. You need a managed or authenticated MongoDB, a Redis with `noeviction`, an SMTP relay, and HTTPS. See [Deployment](docs/DEPLOYMENT.md) for the full checklist, backups and the Atlas migration path.
 
 ## Limitations
 

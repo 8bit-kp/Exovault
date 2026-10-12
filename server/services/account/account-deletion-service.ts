@@ -131,7 +131,7 @@ export async function requestAccountDeletion(
         emailEncrypted: encryptField(user.email, deletionAad(user.id)),
       },
     },
-    { upsert: true, new: true },
+    { upsert: true, returnDocument: "after" },
   ).lean();
 
   await freezeAccount(user.id, now);
@@ -218,7 +218,7 @@ export async function purgeDueAccounts(now = new Date()): Promise<{ purged: numb
         ],
       },
       { $set: { state: "purging", claimedAt: now }, $inc: { attempts: 1 } },
-      { new: true, sort: { purgeAfter: 1 } },
+      { returnDocument: "after", sort: { purgeAfter: 1 } },
     ).lean();
     if (!claimed) return { purged };
     try {

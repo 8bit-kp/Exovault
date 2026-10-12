@@ -110,6 +110,12 @@ const envSchema = z
     // Account deletion (spec 5.2): days the account can still be restored, and how often the worker purges.
     ACCOUNT_DELETION_GRACE_DAYS: z.coerce.number().int().min(1).max(30).default(7),
     ACCOUNT_PURGE_MS: z.coerce.number().int().min(5_000).max(86_400_000).default(3_600_000),
+    // Who runs scheduled work (D-039): the BullMQ worker, or a platform cron calling /api/cron/run (Vercel).
+    SCHEDULER: z.enum(["worker", "cron"]).default("worker"),
+    // How often the cron fires. Vercel Hobby allows once a day (1440); Pro can go down to every minute.
+    CRON_INTERVAL_MINUTES: z.coerce.number().int().min(1).max(1440).default(1440),
+    // Vercel sends it as `Authorization: Bearer <CRON_SECRET>` on every cron invocation.
+    CRON_SECRET: z.string().min(32, "must be at least 32 characters").optional(),
   })
   .superRefine((env, ctx) => {
     if (!env.IDENTIFIER_ENCRYPTION_KEYS.has(env.IDENTIFIER_ENCRYPTION_ACTIVE_KEY_ID)) {
@@ -154,6 +160,16 @@ const envSchema = z
           message: "is a test/CI value; generate a real one",
         });
       }
+    }
+    if (env.SCHEDULER === "cron" && !env.CRON_SECRET) {
+      ctx.addIssue({ code: "custom", path: ["CRON_SECRET"], message: "is required when SCHEDULER=cron" });
+    }
+    if (env.SCHEDULER === "cron" && env.SCAN_QUEUE === "bullmq") {
+      ctx.addIssue({
+        code: "custom",
+        path: ["SCAN_QUEUE"],
+        message: "must be inline when SCHEDULER=cron (there is no worker to consume the queue)",
+      });
     }
     const devDb = databaseNameOf(env.MONGODB_URI);
     const testDb = databaseNameOf(env.MONGODB_URI_TEST);

@@ -24,6 +24,32 @@ export const FREQUENCY_LABELS: Record<MonitoringFrequency, string> = {
   "24h": "Daily",
 };
 
+/**
+ * Frequencies a deployment can honour. With the worker (null) every one; with
+ * a platform cron that fires every `cronIntervalMinutes`, only those at least
+ * that long, so the UI never offers "every 6 hours" when checks run daily.
+ */
+export function availableFrequencies(cronIntervalMinutes: number | null): MonitoringFrequency[] {
+  if (cronIntervalMinutes === null) return [...MONITORING_FREQUENCIES];
+  return MONITORING_FREQUENCIES.filter((f) => FREQUENCY_MS[f] >= cronIntervalMinutes * 60_000);
+}
+
+/**
+ * With a cron that fires every N minutes, an identity due a little after one
+ * run would otherwise wait a whole extra interval. Claiming anything due
+ * within the next half interval keeps the effective cadence at N.
+ */
+export function cronDueBy(now: Date, cronIntervalMinutes: number): Date {
+  return new Date(now.getTime() + (cronIntervalMinutes * 60_000) / 2);
+}
+
+/** "once a day", "every 6 hours", "every 15 minutes": how often a cron fires, for UI copy. */
+export function describeCronInterval(minutes: number): string {
+  if (minutes === 1440) return "once a day";
+  if (minutes % 60 === 0) return minutes === 60 ? "every hour" : `every ${minutes / 60} hours`;
+  return minutes === 1 ? "every minute" : `every ${minutes} minutes`;
+}
+
 /** ±10% jitter spreads scans across the window so identities enabled together don't scan together. */
 export const SCHEDULE_JITTER = 0.1;
 
