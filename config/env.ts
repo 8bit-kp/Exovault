@@ -112,6 +112,8 @@ const envSchema = z
     ACCOUNT_PURGE_MS: z.coerce.number().int().min(5_000).max(86_400_000).default(3_600_000),
     // Who runs scheduled work (D-039): the BullMQ worker, or a platform cron calling /api/cron/run (Vercel).
     SCHEDULER: z.enum(["worker", "cron"]).default("worker"),
+    // The /design-system reference pages: on by default except in production (E2E turns them on explicitly).
+    DESIGN_SYSTEM_PAGES: z.enum(["on", "off"]).optional(),
     // How often the cron fires. Vercel Hobby allows once a day (1440); Pro can go down to every minute.
     CRON_INTERVAL_MINUTES: z.coerce.number().int().min(1).max(1440).default(1440),
     // Vercel sends it as `Authorization: Bearer <CRON_SECRET>` on every cron invocation.

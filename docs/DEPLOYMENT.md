@@ -47,7 +47,7 @@ No second host: the web app runs on Vercel, scans run inside the request (`after
 | `PROVIDER_MODE`                                                       | `mock` (labelled demo data), or `live` plus `HIBP_API_KEY` and `HIBP_REQUESTS_PER_MINUTE`                                    |
 | `PASSWORD_BREACH_CHECK`                                               | `on`                                                                                                                         |
 
-Leave unset: `NODE_ENV` (Vercel sets it), `EXOVAULT_ALLOW_TEST_SECRETS`, `NEXT_OUTPUT`, `WORKER_*`, `MONITORING_TICK_MS`, `NOTIFICATION_DISPATCH_MS`, `ACCOUNT_PURGE_MS` (worker only). The secrets must be **new values**, not the ones in your `.env.local`, and must never change once data exists. Losing `IDENTIFIER_ENCRYPTION_KEYS` makes stored addresses unreadable.
+Leave unset: `NODE_ENV` (Vercel sets it), `DESIGN_SYSTEM_PAGES` (the `/design-system` reference pages 404 in production unless set to `on`), `EXOVAULT_ALLOW_TEST_SECRETS`, `NEXT_OUTPUT`, `WORKER_*`, `MONITORING_TICK_MS`, `NOTIFICATION_DISPATCH_MS`, `ACCOUNT_PURGE_MS` (worker only). The secrets must be **new values**, not the ones in your `.env.local`, and must never change once data exists. Losing `IDENTIFIER_ENCRYPTION_KEYS` makes stored addresses unreadable.
 
 **3. Create the indexes (and optionally the demo account) once, from your machine,** with the production values:
 
@@ -62,6 +62,7 @@ rm .env.production.local
 **4. Deploy:**
 
 - Import the GitHub repo in Vercel. The framework preset is Next.js, the build command is `npm run build`, and Node 22 is used (`engines`).
+- In Vercel → Settings → General → Node.js Version, choose **22.x**, so a future Node major is never picked automatically (`engines` says `>=22`).
 - `vercel.json` registers the cron (`0 6 * * *`, daily at 06:00 UTC; Hobby runs it within that hour).
 
 **5. Check:**

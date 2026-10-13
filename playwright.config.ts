@@ -24,6 +24,8 @@ export const E2E_ENV = {
   MAX_ACTIVE_IDENTITIES_PER_USER: "2",
   // Scans run in the separate BullMQ worker, as in a production deployment (D-032).
   SCAN_QUEUE: "bullmq",
+  // A production build that still serves the component reference pages the E2E suite checks.
+  DESIGN_SYSTEM_PAGES: "on",
 };
 
 /**
