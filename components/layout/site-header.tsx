@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AUTH_ROUTES, MARKETING_NAV } from "@/config/navigation";
 import { ButtonLink } from "@/components/ui/button";
 import { Logo } from "@/components/ui/logo";
+import { primaryCta } from "@/config/demo";
 
 export function SiteHeader() {
   return (
@@ -28,8 +29,8 @@ export function SiteHeader() {
           <ButtonLink href={AUTH_ROUTES.signIn} variant="ghost" size="sm">
             Sign in
           </ButtonLink>
-          <ButtonLink href={AUTH_ROUTES.signUp} size="sm">
-            Check your exposure
+          <ButtonLink href={primaryCta().href} size="sm">
+            {primaryCta().label}
           </ButtonLink>
         </div>
       </div>

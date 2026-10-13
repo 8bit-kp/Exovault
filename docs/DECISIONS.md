@@ -558,3 +558,32 @@ The owner chose 2.
 - **Verified:**
   - integration tests: windows and reset, 20 concurrent first hits counting 1–20, keyed hashes only, the real 6th-sign-in refusal, fail-closed;
   - a production server in cron mode with Redis unreachable: sign-in, scan and cron run all worked, with counters in MongoDB and no Redis connection attempts.
+
+## D-041 — Demo mode for showcasing (2026-10-13)
+
+**Context:** the owner wants to show the deployed project without public sign-up. Visitors should get demo credentials and see the app from the inside with fictional data, on the same link.
+
+**Decision:**
+
+- `DEMO_MODE=on` turns the deployment into a showcase:
+  - One shared account, `DEMO_ACCOUNT_EMAIL` (default `demo@exovault.example`), pre-verified, with one verified identity and demo-provider findings.
+  - Its password, `DEMO_ACCOUNT_PASSWORD`, is set by `npm run seed` and shown, prefilled, on the sign-in page. Password sign-in on a verified account needs no code.
+- **Refused on the server** (`demoGuard()` at the top of each Server Action, the only mutation surface):
+  - sign-up, email verification and resend, forgot and reset password;
+  - adding, verifying, resending and removing identities (adding would email a code to an arbitrary address);
+  - account deletion;
+  - revoking sessions (viewers share one account).
+  - Pages show a "closed in the demo" screen or a locked note in place of those controls. The app shows a demo banner.
+- **Allowed:** scans, remediation, monitoring, preferences, reveal (fictional), export.
+- **No outgoing email:** `getEmailProvider()` returns a discarding provider, so no SMTP is needed.
+- **Sign-in limits:** the per-account limit is skipped for the shared account only, so one visitor can't lock everyone out. Per-IP limits remain.
+- **Daily reset:** the cron run (D-039) calls `resetDemoAccountIfEnabled()`. It deletes the account's scans, findings, checklist ticks, scores and alerts, turns monitoring off, runs one real scan, and marks the low finding handled. `scripts/seed.ts` uses the same service (`server/services/demo/demo-account.ts`) and keeps the stored password in step with the env value.
+- **Validation:** `DEMO_MODE=on` requires `PROVIDER_MODE=mock`.
+
+**Consequences:**
+
+- The password is public by design. That's acceptable because the account holds only fictional data and can't be deleted, emailed from, or used to contact third parties.
+- Visitors can still change shared state (tick steps, start scans, toggle monitoring) until the next daily reset.
+- **Verified:**
+  - integration tests: provisioning, reset undoing a visitor's changes, 8 viewers signing in without a lockout while other accounts keep the limit, password sync, discard provider, guard;
+  - a production server in demo mode with no SMTP and no Redis: CTA, prefilled sign-in to dashboard, banner, locked deletion, revoke refused while a second viewer stays signed in, closed sign-up and reset pages, cron reset `true`, no SMTP or Redis activity.

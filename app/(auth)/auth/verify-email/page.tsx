@@ -6,10 +6,13 @@ import { AuthShell } from "@/components/layout/auth-shell";
 import { Callout } from "@/components/ui/callout";
 import { getPendingVerification } from "@/lib/auth/pending-verification";
 import { maskEmail } from "@/lib/utils/mask";
+import { DemoAuthClosed } from "@/components/auth/demo-notices";
+import { isDemoMode } from "@/config/demo";
 
 export const metadata: Metadata = { title: "Verify your email" };
 
 export default async function VerifyEmailPage() {
+  if (isDemoMode()) return <DemoAuthClosed title="Email verification is off in the demo" />;
   const pending = await getPendingVerification();
   if (!pending) {
     return (

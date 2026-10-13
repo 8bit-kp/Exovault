@@ -1,5 +1,6 @@
 "use server";
 
+import { demoGuard } from "@/config/demo";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { AUTH_ROUTES } from "@/config/navigation";
@@ -16,6 +17,8 @@ const deletionSchema = z.object({
 
 /** Spec 5.2: confirmation + re-authentication, then a grace period (not an immediate delete). */
 export async function requestDeletionAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const blocked = demoGuard(); // D-041: the shared demo account stays as it is
+  if (blocked) return blocked;
   const { user } = await requireSession();
   const parsed = deletionSchema.safeParse({
     password: formData.get("password") ?? "",

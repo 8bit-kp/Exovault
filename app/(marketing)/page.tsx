@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { brand } from "@/config/brand";
-import { AUTH_ROUTES } from "@/config/navigation";
 import { SecurityScore } from "@/components/dashboard/security-score";
 import { SeverityBreakdown } from "@/components/dashboard/severity-breakdown";
 import { ExposureCard } from "@/components/exposure/exposure-card";
@@ -25,6 +24,7 @@ import { DemoDataLabel } from "@/components/ui/demo-data-label";
 import { Panel } from "@/components/ui/panel";
 import { EXAMPLE_EXPOSURES } from "@/lib/demo/examples";
 import { cn } from "@/lib/utils/cn";
+import { isDemoMode, primaryCta } from "@/config/demo";
 
 export default function LandingPage() {
   return (
@@ -100,8 +100,8 @@ function Hero() {
             ownership first, so no one can use it to look you up.
           </p>
           <div className="flex flex-wrap gap-3">
-            <ButtonLink href={AUTH_ROUTES.signUp} size="lg">
-              Check your exposure
+            <ButtonLink href={primaryCta().href} size="lg">
+              {primaryCta().label}
               <ArrowRight aria-hidden />
             </ButtonLink>
             <ButtonLink href="/#how-it-works" size="lg" variant="secondary">
@@ -232,7 +232,7 @@ function ExampleResult() {
       <ul aria-label="Example exposures" className="space-y-2">
         {EXAMPLE_EXPOSURES.slice(0, 3).map((exposure) => (
           <li key={exposure.id}>
-            <ExposureCard exposure={exposure} href={AUTH_ROUTES.signUp} />
+            <ExposureCard exposure={exposure} href={primaryCta().href} />
           </li>
         ))}
       </ul>
@@ -387,10 +387,14 @@ function ClosingCta() {
           <h2 id="cta-title" className="text-3xl font-semibold text-fg">
             See what the sources know about you.
           </h2>
-          <p className="text-fg-muted">Create an account, verify your email, and run your first scan.</p>
+          <p className="text-fg-muted">
+            {isDemoMode()
+              ? "Sign in to the demo account and explore a full, fictional result."
+              : "Create an account, verify your email, and run your first scan."}
+          </p>
         </div>
-        <ButtonLink href={AUTH_ROUTES.signUp} size="lg">
-          Check your exposure
+        <ButtonLink href={primaryCta().href} size="lg">
+          {primaryCta().label}
           <ArrowRight aria-hidden />
         </ButtonLink>
       </div>

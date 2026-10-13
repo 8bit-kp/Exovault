@@ -79,6 +79,26 @@ rm .env.production.local
 - Preview deployments have a different URL than `APP_URL`, so sign-in and Origin checks fail there by design. Test on the production URL.
 - On Vercel Pro, set the cron to `*/15 * * * *` and `CRON_INTERVAL_MINUTES=15`; every frequency becomes available.
 
+## Demo mode: a showcase with one shared account (D-041)
+
+For showing the project without opening sign-up, add to the Vercel variables above:
+
+```
+DEMO_MODE=on
+DEMO_ACCOUNT_EMAIL=demo@exovault.example
+DEMO_ACCOUNT_PASSWORD=<12+ characters you're happy to share>
+```
+
+- **What visitors see:** the CTAs say **Try the demo**, and the sign-in page shows the demo email and password, prefilled. A password sign-in on the (already verified) account goes straight to the dashboard, with no code needed.
+- **What's switched off:** sign-up, email verification and password reset show a "closed in the demo" page. Adding or removing addresses, deleting the account, and signing out other viewers' sessions are refused on the server.
+- **What still works:** scans, checklists, statuses, monitoring, alert settings, export, the timeline and every page.
+- **Email:** nothing is sent at all, so the `SMTP_*` variables and `EMAIL_FROM` can be left unset.
+- **Rate limits:** the shared account has no per-account sign-in limit (its password is public); the per-IP limit still applies.
+- **Daily reset:** the cron restores the demo data, so every day starts clean. `npm run seed` (with the production variables) creates the account and sets its password the first time, and re-runs reset it.
+- `PROVIDER_MODE` must be `mock`.
+
+To open the product to real users later, remove `DEMO_MODE` (and set up SMTP).
+
 ## Container images (D-038)
 
 ```bash

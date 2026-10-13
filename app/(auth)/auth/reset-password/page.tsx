@@ -4,10 +4,13 @@ import { AuthLink } from "@/components/auth/auth-link";
 import { ResetPasswordForm } from "@/components/auth/auth-forms";
 import { AuthShell } from "@/components/layout/auth-shell";
 import { Callout } from "@/components/ui/callout";
+import { DemoAuthClosed } from "@/components/auth/demo-notices";
+import { isDemoMode } from "@/config/demo";
 
 export const metadata: Metadata = { title: "Choose a new password", referrer: "no-referrer" };
 
 export default async function ResetPasswordPage({ searchParams }: PageProps<"/auth/reset-password">) {
+  if (isDemoMode()) return <DemoAuthClosed title="Password reset is off in the demo" />;
   const { token } = await searchParams;
   if (typeof token !== "string" || token.length < 16 || token.length > 512) {
     return (

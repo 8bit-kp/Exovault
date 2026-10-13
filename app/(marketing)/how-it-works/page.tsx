@@ -3,7 +3,7 @@ import Link from "next/link";
 import { InfoPage, InfoSection, Steps } from "@/components/marketing/info-page";
 import { ButtonLink } from "@/components/ui/button";
 import { brand } from "@/config/brand";
-import { AUTH_ROUTES } from "@/config/navigation";
+import { primaryCta } from "@/config/demo";
 
 export const metadata: Metadata = {
   title: "How it works",
@@ -99,7 +99,7 @@ export default function HowItWorksPage() {
 
       <InfoSection id="start" title="Try it">
         <p>Checking starts with an account, because we only check addresses their owners have confirmed.</p>
-        <ButtonLink href={AUTH_ROUTES.signUp}>Check your exposure</ButtonLink>
+        <ButtonLink href={primaryCta().href}>{primaryCta().label}</ButtonLink>
       </InfoSection>
     </InfoPage>
   );

@@ -6,6 +6,8 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { getEnv } from "@/config/env";
 import { requireSession } from "@/lib/auth/session";
+import { DemoLockedNote } from "@/components/auth/demo-notices";
+import { isDemoMode } from "@/config/demo";
 
 export const metadata: Metadata = { title: "Privacy settings" };
 
@@ -60,7 +62,14 @@ export default async function PrivacySettingsPage() {
               within 35 days.
             </li>
           </ul>
-          <DeleteAccountForm graceDays={graceDays} />
+          {isDemoMode() ? (
+            <DemoLockedNote>
+              Deleting the account is off in the demo. In a normal deployment, this form asks for your
+              password and schedules the deletion.
+            </DemoLockedNote>
+          ) : (
+            <DeleteAccountForm graceDays={graceDays} />
+          )}
         </PanelBody>
       </Panel>
     </div>

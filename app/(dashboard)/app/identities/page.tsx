@@ -10,6 +10,8 @@ import { requireUser } from "@/lib/auth/session";
 import { pluralize } from "@/lib/utils/format";
 import { maskEmail } from "@/lib/utils/mask";
 import { listIdentities } from "@/server/services/identity/identity-service";
+import { DemoLockedNote } from "@/components/auth/demo-notices";
+import { isDemoMode } from "@/config/demo";
 
 export const metadata: Metadata = { title: "Identities" };
 
@@ -44,7 +46,13 @@ export default async function IdentitiesPage() {
         <Panel>
           <PanelHeader title="Add an identity" description="Only addresses you can prove are yours." />
           <PanelBody>
-            <AddIdentityForm flow="app" accountEmailMasked={maskEmail(user.email)} />
+            {isDemoMode() ? (
+              <DemoLockedNote>
+                Adding addresses is off in the demo: it would email a code to that address.
+              </DemoLockedNote>
+            ) : (
+              <AddIdentityForm flow="app" accountEmailMasked={maskEmail(user.email)} />
+            )}
           </PanelBody>
         </Panel>
       ) : (

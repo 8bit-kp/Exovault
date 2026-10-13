@@ -5,11 +5,14 @@ import { AuthLink } from "@/components/auth/auth-link";
 import { SignUpForm } from "@/components/auth/auth-forms";
 import { AuthShell } from "@/components/layout/auth-shell";
 import { getSession } from "@/lib/auth/session";
+import { DemoAuthClosed } from "@/components/auth/demo-notices";
+import { isDemoMode } from "@/config/demo";
 
 export const metadata: Metadata = { title: "Create account" };
 
 export default async function SignUpPage() {
   if (await getSession()) redirect("/app/dashboard");
+  if (isDemoMode()) return <DemoAuthClosed title="Sign-ups are closed in the demo" />;
   return (
     <AuthShell
       title="Create your account"

@@ -9,6 +9,11 @@ let provider: EmailProvider | undefined;
 export function getEmailProvider(): EmailProvider {
   if (!provider) {
     const env = getEnv();
+    // Demo mode (D-041): the shared account's address is fictional and sign-up is off, so nothing is sent.
+    if (env.DEMO_MODE === "on") {
+      provider = { name: "demo-discard", send: async () => undefined };
+      return provider;
+    }
     provider = smtpEmailProvider({
       host: env.SMTP_HOST,
       port: env.SMTP_PORT,

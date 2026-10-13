@@ -114,6 +114,11 @@ const envSchema = z
     SCHEDULER: z.enum(["worker", "cron"]).default("worker"),
     // Where rate-limit counters live (D-040): Redis, or MongoDB for deployments without Redis.
     RATE_LIMIT_STORE: z.enum(["redis", "mongo"]).default("redis"),
+    // Showcase deployment (D-041): one shared demo account, no sign-up, no outgoing email.
+    DEMO_MODE: z.enum(["on", "off"]).default("off"),
+    DEMO_ACCOUNT_EMAIL: z.email().default("demo@exovault.example"),
+    // Set by `npm run seed` on the account, and shown on the sign-in page when demo mode is on.
+    DEMO_ACCOUNT_PASSWORD: z.string().min(12, "must be at least 12 characters").max(128).optional(),
     // The /design-system reference pages: on by default except in production (E2E turns them on explicitly).
     DESIGN_SYSTEM_PAGES: z.enum(["on", "off"]).optional(),
     // How often the cron fires. Vercel Hobby allows once a day (1440); Pro can go down to every minute.
@@ -164,6 +169,13 @@ const envSchema = z
           message: "is a test/CI value; generate a real one",
         });
       }
+    }
+    if (env.DEMO_MODE === "on" && env.PROVIDER_MODE !== "mock") {
+      ctx.addIssue({
+        code: "custom",
+        path: ["PROVIDER_MODE"],
+        message: "must be mock when DEMO_MODE=on (the demo shows fictional data only)",
+      });
     }
     if (env.SCHEDULER === "cron" && !env.CRON_SECRET) {
       ctx.addIssue({ code: "custom", path: ["CRON_SECRET"], message: "is required when SCHEDULER=cron" });

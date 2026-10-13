@@ -128,4 +128,17 @@ describe("parseEnv", () => {
     const env = parseEnv(validSource({ SCHEDULER: "cron", CRON_SECRET: "c".repeat(40) }));
     expect(env.CRON_INTERVAL_MINUTES).toBe(1440);
   });
+
+  it("allows demo mode only with fictional data", () => {
+    expect(parseEnv(validSource()).DEMO_MODE).toBe("off");
+    expect(
+      issuesFor(validSource({ DEMO_MODE: "on", PROVIDER_MODE: "live", HIBP_API_KEY: "a".repeat(32) })).join(
+        "\n",
+      ),
+    ).toContain("PROVIDER_MODE must be mock");
+    expect(parseEnv(validSource({ DEMO_MODE: "on" })).DEMO_ACCOUNT_EMAIL).toBe("demo@exovault.example");
+    expect(issuesFor(validSource({ DEMO_ACCOUNT_PASSWORD: "short" })).join("\n")).toContain(
+      "DEMO_ACCOUNT_PASSWORD must be at least 12 characters",
+    );
+  });
 });

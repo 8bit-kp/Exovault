@@ -14,6 +14,8 @@ import { getMonitoringView } from "@/server/services/monitoring/monitoring-servi
 import Link from "next/link";
 import { LatestScanPanel } from "@/components/scan/latest-scan-panel";
 import { getLatestScan, manualScanAvailableIn } from "@/server/services/scan/scan-service";
+import { DemoLockedNote } from "@/components/auth/demo-notices";
+import { isDemoMode } from "@/config/demo";
 
 export const metadata: Metadata = { title: "Identity" };
 
@@ -81,7 +83,13 @@ export default async function IdentityDetailPage({ params }: PageProps<"/app/ide
           description="Deletes the encrypted address and stops all checks for it."
         />
         <PanelBody>
-          <RemoveIdentityButton identityId={identity.id} />
+          {isDemoMode() ? (
+            <DemoLockedNote>
+              Removing the address is off in the demo, so everyone sees the same data.
+            </DemoLockedNote>
+          ) : (
+            <RemoveIdentityButton identityId={identity.id} />
+          )}
         </PanelBody>
       </Panel>
     </div>

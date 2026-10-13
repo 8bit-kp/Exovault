@@ -48,7 +48,14 @@ export function SignUpForm() {
   );
 }
 
-export function SignInForm({ returnTo }: { returnTo?: string }) {
+export function SignInForm({
+  returnTo,
+  demo,
+}: {
+  returnTo?: string;
+  /** Demo mode (D-041): prefill the shared account and hide password reset. */
+  demo?: { email: string; password: string | null };
+}) {
   const [state, action] = useActionState(signInAction, IDLE);
   return (
     <form action={action} noValidate className="space-y-4">
@@ -61,16 +68,25 @@ export function SignInForm({ returnTo }: { returnTo?: string }) {
         autoComplete="email"
         required
         state={state}
+        defaultValue={demo?.email}
       />
-      <PasswordField name="password" label="Password" autoComplete="current-password" state={state} />
-      <div className="flex justify-end">
-        <Link
-          href={AUTH_ROUTES.forgotPassword}
-          className="text-sm text-accent underline-offset-4 hover:underline"
-        >
-          Forgot password?
-        </Link>
-      </div>
+      <PasswordField
+        name="password"
+        label="Password"
+        autoComplete="current-password"
+        state={state}
+        defaultValue={demo?.password ?? undefined}
+      />
+      {demo ? null : (
+        <div className="flex justify-end">
+          <Link
+            href={AUTH_ROUTES.forgotPassword}
+            className="text-sm text-accent underline-offset-4 hover:underline"
+          >
+            Forgot password?
+          </Link>
+        </div>
+      )}
       <SubmitButton pendingLabel="Signing in…">Sign in</SubmitButton>
     </form>
   );

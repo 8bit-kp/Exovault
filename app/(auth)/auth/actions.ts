@@ -1,5 +1,6 @@
 "use server";
 
+import { demoGuard } from "@/config/demo";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { AUTH_ROUTES } from "@/config/navigation";
@@ -56,6 +57,8 @@ function fromForm(formData: FormData, keys: string[]): Record<string, unknown> {
 }
 
 export async function signUpAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const blocked = demoGuard(); // D-041: the shared demo account stays as it is
+  if (blocked) return blocked;
   const parsed = signUpSchema.safeParse(fromForm(formData, ["email", "password"]));
   if (!parsed.success) {
     return {
@@ -113,6 +116,8 @@ const codeSchema = z.object({
 });
 
 export async function verifyEmailAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const blocked = demoGuard(); // D-041: the shared demo account stays as it is
+  if (blocked) return blocked;
   const pending = await getPendingVerification();
   if (!pending)
     return { status: "error", message: "This verification session expired. Sign in to get a new code." };
@@ -135,6 +140,8 @@ export async function verifyEmailAction(_prev: FormState, formData: FormData): P
 }
 
 export async function resendCodeAction(): Promise<FormState> {
+  const blocked = demoGuard(); // D-041: the shared demo account stays as it is
+  if (blocked) return blocked;
   const pending = await getPendingVerification();
   if (!pending)
     return { status: "error", message: "This verification session expired. Sign in to get a new code." };
@@ -145,6 +152,8 @@ export async function resendCodeAction(): Promise<FormState> {
 }
 
 export async function forgotPasswordAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const blocked = demoGuard(); // D-041: the shared demo account stays as it is
+  if (blocked) return blocked;
   const parsed = emailOnlySchema.safeParse(fromForm(formData, ["email"]));
   if (!parsed.success) return { status: "error", fieldErrors: fieldErrors(parsed.error) };
   const result = await account.requestPasswordReset(parsed.data, await getRequestContext());
@@ -157,6 +166,8 @@ export async function forgotPasswordAction(_prev: FormState, formData: FormData)
 }
 
 export async function resetPasswordAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const blocked = demoGuard(); // D-041: the shared demo account stays as it is
+  if (blocked) return blocked;
   const parsed = resetPasswordSchema.safeParse(fromForm(formData, ["token", "password", "confirmPassword"]));
   if (!parsed.success) {
     const errors = fieldErrors(parsed.error);

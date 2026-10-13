@@ -1,5 +1,6 @@
 "use server";
 
+import { demoGuard } from "@/config/demo";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getRequestContext } from "@/lib/auth/request-context";
@@ -10,6 +11,8 @@ import { revokeOtherSessions, revokeSession } from "@/server/services/account/se
 const sessionIdSchema = z.string().regex(/^[0-9a-f]{24}$/);
 
 export async function revokeSessionAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const blocked = demoGuard(); // D-041: the shared demo account stays as it is
+  if (blocked) return blocked;
   const session = await requireSession();
   const parsed = sessionIdSchema.safeParse(formData.get("sessionId"));
   // Same response for malformed, missing, and someone else's session ID.
@@ -24,6 +27,8 @@ export async function revokeSessionAction(_prev: FormState, formData: FormData):
 }
 
 export async function revokeOtherSessionsAction(): Promise<FormState> {
+  const blocked = demoGuard(); // D-041: the shared demo account stays as it is
+  if (blocked) return blocked;
   const session = await requireSession();
   const count = await revokeOtherSessions(session.user.id, session.session.id, await getRequestContext());
   revalidatePath("/app/settings/security");

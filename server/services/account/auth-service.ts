@@ -2,6 +2,7 @@ import "server-only";
 import { isAPIError } from "better-auth/api";
 import { RATE_LIMITS, type RateLimitRule } from "@/config/rate-limits";
 import { recordAuditEvent } from "@/lib/audit";
+import { demoAccount, isDemoMode } from "@/config/demo";
 import { getEnv } from "@/config/env";
 import { getAuth } from "@/lib/auth/server";
 import { isPasswordCompromised } from "better-auth/plugins/haveibeenpwned";
@@ -248,10 +249,16 @@ export async function signIn(
   input: { email: string; password: string },
   ctx: RequestContext,
 ): Promise<AuthResult<"verify-email">> {
+  // The shared demo account's password is public (D-041): a per-account limit would only let one
+  // visitor lock everyone else out. The per-IP limit still applies.
+  const isSharedDemoAccount =
+    isDemoMode() && input.email.trim().toLowerCase() === demoAccount().email.toLowerCase();
   const blocked = await checkLimits(
     [
       [RATE_LIMITS.signInPerIp, ctx.ip],
-      [RATE_LIMITS.signInPerAccount, input.email],
+      ...(isSharedDemoAccount
+        ? []
+        : ([[RATE_LIMITS.signInPerAccount, input.email]] as Array<[RateLimitRule, string]>)),
     ],
     ctx,
     input.email,

@@ -163,6 +163,8 @@ export async function startManualScan(
   identityId: string,
   ctx: Ctx,
   now = new Date(),
+  /** A specific queue (scripts and the demo reset wait on their scan); defaults to the configured one. */
+  queue?: ScanQueue,
 ): Promise<StartScanResult> {
   const identity = await getIdentity(userId, identityId);
   if (!identity) return { ok: false, reason: "not_found" };
@@ -184,7 +186,14 @@ export async function startManualScan(
     const retryAfterMs = recent.createdAt.getTime() + MANUAL_SCAN_COOLDOWN_MS - now.getTime();
     return { ok: false, reason: "cooldown", retryAfterSeconds: Math.max(1, Math.ceil(retryAfterMs / 1000)) };
   }
-  return createAndEnqueue({ userId, identityId: _id, trigger: "manual", providers: providersFor(), ctx });
+  return createAndEnqueue({
+    userId,
+    identityId: _id,
+    trigger: "manual",
+    providers: providersFor(),
+    ctx,
+    queue,
+  });
 }
 
 /**
