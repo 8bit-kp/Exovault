@@ -14,7 +14,12 @@ export function Logo({ className, showWordmark = true }: { className?: string; s
         <circle cx="12" cy="12" r="1.75" className="fill-accent" />
       </svg>
       {showWordmark ? (
-        <span className="font-mono text-sm font-semibold tracking-[0.18em] uppercase">{brand.name}</span>
+        <span className="flex flex-col leading-tight">
+          <span className="font-mono text-sm font-semibold tracking-[0.18em] uppercase">
+            {brand.wordmark.primary}
+          </span>
+          <span className="text-2xs font-medium tracking-wide text-fg-muted">{brand.wordmark.secondary}</span>
+        </span>
       ) : (
         <span className="sr-only">{brand.name}</span>
       )}

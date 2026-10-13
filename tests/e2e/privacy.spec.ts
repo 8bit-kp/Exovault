@@ -26,7 +26,7 @@ test("download my data: a JSON file with my own data; refused cross-site and sig
     page.waitForEvent("download"),
     page.getByRole("button", { name: "Download my data (JSON)" }).click(),
   ]);
-  expect(download.suggestedFilename()).toMatch(/^exovault-export-\d{4}-\d{2}-\d{2}\.json$/);
+  expect(download.suggestedFilename()).toMatch(/^consltek-breach-monitoring-export-\d{4}-\d{2}-\d{2}\.json$/);
   const data = JSON.parse(await readFile((await download.path())!, "utf8"));
   expect(data.account.email).toBe(email);
   expect(data.identities[0].value).toBe(email);

@@ -1,3 +1,4 @@
+import { brand } from "@/config/brand";
 import { expect, newDeviceContext, test } from "./fixtures";
 import { AFTER_SUBMIT, expectAccessible, signUpAndVerify, signUpToDashboard } from "./helpers";
 import { codeFrom, uniqueEmail, waitForEmail } from "./mailpit";
@@ -44,7 +45,7 @@ test("a different address needs the emailed code; the code works once; the limit
   expect(page.url()).not.toContain("example.test");
   await expectAccessible(page);
 
-  const message = await waitForEmail(other, "Confirm Exovault can check this address");
+  const message = await waitForEmail(other, `Confirm ${brand.name} can check this address`);
   await page.getByLabel("Verification code").fill(codeFrom(message));
   await page.getByRole("button", { name: "Verify address" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Verified identity" })).toBeVisible(AFTER_SUBMIT);

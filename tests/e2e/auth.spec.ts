@@ -1,3 +1,4 @@
+import { brand } from "@/config/brand";
 import { expect, newDeviceContext, test } from "./fixtures";
 import { AFTER_SUBMIT, expectAccessible, PASSWORD, signUpToDashboard } from "./helpers";
 import { uniqueEmail, waitForEmail } from "./mailpit";
@@ -76,7 +77,7 @@ test.describe("account journey", () => {
     await otherPage.getByRole("button", { name: "Create account" }).click();
     await expect(otherPage).toHaveURL(/\/auth\/verify-email$/, AFTER_SUBMIT);
     // The real owner is told instead.
-    await waitForEmail(email, "Your Exovault account");
+    await waitForEmail(email, `Your ${brand.name} account`);
     await other.close();
   });
 

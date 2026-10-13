@@ -72,8 +72,12 @@ describe("demo mode (D-041)", () => {
 
   it("lets many viewers sign in to the shared account without locking it, while other accounts keep the limit", async () => {
     await provisionDemoAccount(EMAIL, PASSWORD);
+    // Eight viewers on different networks, then twelve on one shared office network.
     const viewers = [];
     for (let i = 0; i < 8; i++) viewers.push(await signIn({ email: EMAIL, password: PASSWORD }, ctx()));
+    for (let i = 0; i < 12; i++) {
+      viewers.push(await signIn({ email: EMAIL, password: PASSWORD }, ctx({ ip: "203.0.113.200" })));
+    }
     expect(viewers.every((r) => r.ok)).toBe(true);
 
     const other = [];

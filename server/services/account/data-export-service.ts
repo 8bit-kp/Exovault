@@ -56,7 +56,7 @@ export async function exportAccountData(
   });
   return {
     ok: true,
-    filename: `${brand.name.toLowerCase()}-export-${now.toISOString().slice(0, 10)}.json`,
+    filename: `${brand.slug}-export-${now.toISOString().slice(0, 10)}.json`,
     body: JSON.stringify(data, null, 2),
   };
 }

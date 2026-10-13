@@ -12,6 +12,7 @@ import { getAuthDb } from "@/lib/db/mongo-client";
 import { logger } from "@/lib/logging/logger";
 import { scrubMessage } from "@/lib/logging/scrub";
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "@/lib/validation/auth";
+import { brand } from "@/config/brand";
 import { getEmailProvider } from "@/server/providers/email";
 import {
   accountExistsMessage,
@@ -35,7 +36,7 @@ function createAuth() {
   const email = () => getEmailProvider();
 
   return betterAuth({
-    appName: "Exovault",
+    appName: brand.name,
     baseURL: env.APP_URL,
     secret: env.AUTH_SECRET,
     // No `client` passed: the adapter never starts transactions (standalone MongoDB, D-004).

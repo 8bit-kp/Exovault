@@ -124,7 +124,7 @@ describe("data export (spec 5.2)", () => {
     expect(results.slice(0, 5).every((r) => r.ok)).toBe(true);
     expect(results[5]).toEqual({ ok: false, reason: "rate_limited" });
     const first = results[0];
-    expect(first.ok && first.filename).toMatch(/^exovault-export-\d{4}-\d{2}-\d{2}\.json$/);
+    expect(first.ok && first.filename).toMatch(/^consltek-breach-monitoring-export-\d{4}-\d{2}-\d{2}\.json$/);
     expect(await AuditLog.countDocuments({ userId: user.id, event: "DATA_EXPORTED" })).toBe(5);
   });
 });

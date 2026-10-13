@@ -102,7 +102,7 @@ const envSchema = z
     SMTP_SECURE: z.enum(["true", "false"]).default("false"),
     SMTP_USER: z.string().min(1).optional(),
     SMTP_PASSWORD: z.string().min(1).optional(),
-    EMAIL_FROM: z.string().default("Exovault <no-reply@exovault.example>"),
+    EMAIL_FROM: z.string().default("Consltek Breach Monitoring <no-reply@exovault.example>"),
 
     // CI runs a production build with throwaway secrets; only CI sets this.
     EXOVAULT_ALLOW_TEST_SECRETS: z.enum(["0", "1"]).default("0"),

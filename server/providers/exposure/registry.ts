@@ -21,7 +21,7 @@ export function getExposureProviders(): ExposureProvider[] {
     createHibpProvider({
       apiKey: env.HIBP_API_KEY!,
       // HIBP requires a User-Agent that describes the consumer accurately.
-      userAgent: `${brand.name}/0.1 (+${env.APP_URL})`,
+      userAgent: `${brand.slug}/0.1 (+${env.APP_URL})`,
       requestsPerMinute: env.HIBP_REQUESTS_PER_MINUTE,
     }),
   ];

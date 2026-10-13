@@ -62,6 +62,9 @@ export const RATE_LIMITS = {
   // Phase 13: account privacy (spec 5.2).
   // Password re-entry before deleting the account: same budget as sign-in, per user.
   reauthPerUser: { name: "reauth:user", limit: 5, windowMs: 15 * MINUTE, failClosed: true },
+  // Demo mode (D-041): the shared account's password is public and sign-up is closed, so there is no
+  // other account to protect; a looser per-network limit stops one office of reviewers locking itself out.
+  demoSignInPerIp: { name: "demo-sign-in:ip", limit: 30, windowMs: 15 * MINUTE, failClosed: true },
   // Each export decrypts every identifier: a few an hour is plenty.
   dataExportPerUser: { name: "data-export:user", limit: 5, windowMs: HOUR, failClosed: true },
 } as const satisfies Record<string, RateLimitRule>;

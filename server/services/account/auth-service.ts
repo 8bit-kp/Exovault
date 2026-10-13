@@ -260,12 +260,12 @@ export async function signIn(
   const isSharedDemoAccount =
     isDemoMode() && input.email.trim().toLowerCase() === demoAccount().email.toLowerCase();
   const blocked = await checkLimits(
-    [
-      [RATE_LIMITS.signInPerIp, ctx.ip],
-      ...(isSharedDemoAccount
-        ? []
-        : ([[RATE_LIMITS.signInPerAccount, input.email]] as Array<[RateLimitRule, string]>)),
-    ],
+    isSharedDemoAccount
+      ? [[RATE_LIMITS.demoSignInPerIp, ctx.ip]]
+      : [
+          [RATE_LIMITS.signInPerIp, ctx.ip],
+          [RATE_LIMITS.signInPerAccount, input.email],
+        ],
     ctx,
     input.email,
   );
