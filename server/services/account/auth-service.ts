@@ -1,5 +1,6 @@
 import "server-only";
 import { isAPIError } from "better-auth/api";
+import { hashPassword } from "better-auth/crypto";
 import { RATE_LIMITS, type RateLimitRule } from "@/config/rate-limits";
 import { recordAuditEvent } from "@/lib/audit";
 import { demoAccount, isDemoMode } from "@/config/demo";
@@ -128,7 +129,9 @@ export async function signUp(
   try {
     const existing = await findAuthUserByEmail(input.email);
     if (existing && !existing.emailVerified) {
-      await (await getAuth().$context).password.hash(input.password);
+      // Timing equaliser. Calls the hasher directly: the context's `hash` is wrapped by the breach-check
+      // plugin, which throws outside an auth endpoint call (so this branch failed with the check on).
+      await hashPassword(input.password);
       const resetBudget = await limit(RATE_LIMITS.passwordResetPerAccount, input.email).catch(() => null);
       if (resetBudget?.allowed) {
         await getAuth().api.requestPasswordReset({ body: { email: input.email }, headers: ctx.headers });

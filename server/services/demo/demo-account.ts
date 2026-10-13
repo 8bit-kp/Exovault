@@ -1,6 +1,7 @@
 import "server-only";
 import { randomBytes } from "node:crypto";
 import { demoAccount, isDemoMode } from "@/config/demo";
+import { hashPassword } from "better-auth/crypto";
 import { getAuth } from "@/lib/auth/server";
 import { getAuthDb } from "@/lib/db/mongo-client";
 import { connectToDatabase } from "@/lib/db/mongoose";
@@ -62,7 +63,9 @@ export async function provisionDemoAccount(email: string, password: string | nul
     await getAuth().api.signUpEmail({ body: { email, password: passwordSet, name: "" } });
   } else if (password) {
     // Keep the account's password in step with the configured one (it is shown on the demo sign-in page).
-    const hash = await (await getAuth().$context).password.hash(password);
+    // The library's own scrypt format, called directly: the context's `hash` is wrapped by the
+    // breach-check plugin, which only works inside an auth endpoint call.
+    const hash = await hashPassword(password);
     const user = await users.findOne({ email });
     await accounts.updateOne({ userId: user!._id, providerId: "credential" }, { $set: { password: hash } });
     passwordSet = password;
