@@ -27,6 +27,7 @@
 | `notificationPreferences` (**built**)                                | 10    | `userId` (unique), `emailEnabled`, `minSeverity`, `mode (immediate/digest)`, `quietHours {enabled, start, end}`, `timezone` (IANA, validated)                                                                                                                                                                                                                             | quiet hours                                       | user               |
 | `auditLogs` (**built**, `models/AuditLog.ts`)                        | 3     | `event`, `outcome`, `userId` (nullable), `subjectHash`, `ipHash`, `requestId`, `metadata`, `createdAt`; append-only (D-022)                                                                                                                                                                                                                                               | —                                                 | —                  |
 | `pendingSignups` (**built**, D-034)                                  | 11    | `userId` (unique), `nonceHash` (SHA-256 of the browser-bound nonce), `expiresAt` (TTL)                                                                                                                                                                                                                                                                                    | —                                                 | user               |
+| `rateLimits` (**built**, D-040, native driver)                       | —     | `_id` (`rl:<rule>:<keyed hash>`), `count`, `expiresAt`; only with `RATE_LIMIT_STORE=mongo`                                                                                                                                                                                                                                                                                | —                                                 | —                  |
 | `accountDeletions` (**built**, D-037)                                | 13    | `userId` (unique), `state (scheduled/purging)`, `requestedAt`, `purgeAfter`, `claimedAt`, `attempts`, `emailEncrypted` (AES-256-GCM, AAD `account-deletion:<userId>`); deleted when the purge finishes                                                                                                                                                                    | encrypted envelope                                | user               |
 | `providerStates` (**built**)                                         | 5     | `provider` (unique), `health`, `consecutiveFailures`, `lastSuccessAt`, `lastFailureAt`, `lastErrorCategory`, `cooldownUntil`                                                                                                                                                                                                                                              | —                                                 | —                  |
 
@@ -34,40 +35,41 @@
 
 Every index has a query that needs it; none are speculative.
 
-| Collection            | Index                                                                 | Reason                                                     |
-| --------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------- |
-| user                  | `{ email: 1 }` unique                                                 | one account per address, enforced by the DB                |
-| session               | `{ token: 1 }` unique                                                 | session lookup                                             |
-| session               | `{ userId: 1, updatedAt: -1 }`                                        | Settings → Security session list                           |
-| session               | `{ expiresAt: 1 }` TTL 0                                              | expired sessions deleted automatically                     |
-| account               | `{ userId: 1 }`                                                       | credential lookup                                          |
-| verification          | `{ identifier: 1 }`; `{ expiresAt: 1 }` TTL 0                         | code/token lookup; purge on expiry                         |
-| identities            | `{ userId: 1, status: 1, createdAt: -1 }`                             | a user's identities                                        |
-| identities            | `{ userId: 1, type: 1, valueBlindIndex: 1 }` unique, partial (active) | no duplicate active identifier per user                    |
-| identities            | `{ "monitoring.enabled": 1, "monitoring.nextScanAt": 1 }`             | scheduler sweep (claims due identities)                    |
-| identityVerifications | `{ identityId: 1 }` unique; `{ expiresAt: 1 }` TTL 0                  | one live code per identity; expired codes deleted          |
-| identityQuotas        | `{ userId: 1 }` unique                                                | atomic active-identity limit (D-024)                       |
-| breaches              | `{ catalogKey: 1 }` unique; `{ sourceKey: 1 }`                        | idempotent catalog upsert; matching                        |
-| exposures             | `{ identityId: 1, fingerprint: 1 }` unique                            | dedupe via idempotent upsert                               |
-| exposures             | `{ identityId: 1, sourceKey: 1 }`                                     | matching candidates for an incoming report                 |
-| exposures             | `{ userId: 1, remediationState: 1, severity: 1 }`                     | dashboard counts, active filters                           |
-| exposures             | `{ userId: 1, firstSeenAt: -1 }`                                      | recent exposures, timeline                                 |
-| scans                 | `{ identityId: 1 }` unique, partial (`active: true`)                  | **one active scan per identity**, enforced by the DB       |
-| scans                 | `{ identityId: 1, trigger: 1, createdAt: -1 }`                        | cooldown check, per-identity history                       |
-| scans                 | `{ userId: 1, createdAt: -1 }`; `{ createdAt: 1 }` TTL 365 d          | history; 12-month retention                                |
-| riskScores            | `{ userId: 1, computedAt: -1 }`; `{ computedAt: 1 }` TTL 365 d        | latest score, history; retention                           |
-| remediationActions    | `{ exposureId: 1, actionKey: 1 }` unique; `{ identityId: 1 }`         | idempotent checklist ticks; delete with identity           |
-| notifications         | `{ dedupeKey: 1 }` unique                                             | never notify the same event twice                          |
-| notifications         | `{ status: 1, scheduledFor: 1 }`; `{ userId: 1, createdAt: -1 }`      | dispatcher; inbox                                          |
-| notifications         | `{ createdAt: 1 }` TTL 90 d                                           | retention                                                  |
-| notificationPrefs     | `{ userId: 1 }` unique                                                | one settings row per user                                  |
-| auditLogs             | `{ userId: 1, createdAt: -1 }`                                        | activity feed, export                                      |
-| auditLogs             | `{ subjectHash: 1, createdAt: -1 }` partial                           | correlate failed attempts for one subject                  |
-| auditLogs             | `{ createdAt: 1 }` TTL 365 d                                          | 12-month retention                                         |
-| pendingSignups        | `{ userId: 1 }` unique; `{ expiresAt: 1 }` TTL 0                      | one binding per account; expired bindings deleted          |
-| accountDeletions      | `{ userId: 1 }` unique                                                | one pending deletion per user; per-request "is it frozen?" |
-| accountDeletions      | `{ state: 1, purgeAfter: 1 }`                                         | purge job: due and stale rows                              |
-| providerStates        | `{ provider: 1 }` unique                                              | one circuit-breaker row per provider                       |
+| Collection            | Index                                                                 | Reason                                                                  |
+| --------------------- | --------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| user                  | `{ email: 1 }` unique                                                 | one account per address, enforced by the DB                             |
+| session               | `{ token: 1 }` unique                                                 | session lookup                                                          |
+| session               | `{ userId: 1, updatedAt: -1 }`                                        | Settings → Security session list                                        |
+| session               | `{ expiresAt: 1 }` TTL 0                                              | expired sessions deleted automatically                                  |
+| account               | `{ userId: 1 }`                                                       | credential lookup                                                       |
+| verification          | `{ identifier: 1 }`; `{ expiresAt: 1 }` TTL 0                         | code/token lookup; purge on expiry                                      |
+| identities            | `{ userId: 1, status: 1, createdAt: -1 }`                             | a user's identities                                                     |
+| identities            | `{ userId: 1, type: 1, valueBlindIndex: 1 }` unique, partial (active) | no duplicate active identifier per user                                 |
+| identities            | `{ "monitoring.enabled": 1, "monitoring.nextScanAt": 1 }`             | scheduler sweep (claims due identities)                                 |
+| identityVerifications | `{ identityId: 1 }` unique; `{ expiresAt: 1 }` TTL 0                  | one live code per identity; expired codes deleted                       |
+| identityQuotas        | `{ userId: 1 }` unique                                                | atomic active-identity limit (D-024)                                    |
+| breaches              | `{ catalogKey: 1 }` unique; `{ sourceKey: 1 }`                        | idempotent catalog upsert; matching                                     |
+| exposures             | `{ identityId: 1, fingerprint: 1 }` unique                            | dedupe via idempotent upsert                                            |
+| exposures             | `{ identityId: 1, sourceKey: 1 }`                                     | matching candidates for an incoming report                              |
+| exposures             | `{ userId: 1, remediationState: 1, severity: 1 }`                     | dashboard counts, active filters                                        |
+| exposures             | `{ userId: 1, firstSeenAt: -1 }`                                      | recent exposures, timeline                                              |
+| scans                 | `{ identityId: 1 }` unique, partial (`active: true`)                  | **one active scan per identity**, enforced by the DB                    |
+| scans                 | `{ identityId: 1, trigger: 1, createdAt: -1 }`                        | cooldown check, per-identity history                                    |
+| scans                 | `{ userId: 1, createdAt: -1 }`; `{ createdAt: 1 }` TTL 365 d          | history; 12-month retention                                             |
+| riskScores            | `{ userId: 1, computedAt: -1 }`; `{ computedAt: 1 }` TTL 365 d        | latest score, history; retention                                        |
+| remediationActions    | `{ exposureId: 1, actionKey: 1 }` unique; `{ identityId: 1 }`         | idempotent checklist ticks; delete with identity                        |
+| notifications         | `{ dedupeKey: 1 }` unique                                             | never notify the same event twice                                       |
+| notifications         | `{ status: 1, scheduledFor: 1 }`; `{ userId: 1, createdAt: -1 }`      | dispatcher; inbox                                                       |
+| notifications         | `{ createdAt: 1 }` TTL 90 d                                           | retention                                                               |
+| notificationPrefs     | `{ userId: 1 }` unique                                                | one settings row per user                                               |
+| auditLogs             | `{ userId: 1, createdAt: -1 }`                                        | activity feed, export                                                   |
+| auditLogs             | `{ subjectHash: 1, createdAt: -1 }` partial                           | correlate failed attempts for one subject                               |
+| auditLogs             | `{ createdAt: 1 }` TTL 365 d                                          | 12-month retention                                                      |
+| pendingSignups        | `{ userId: 1 }` unique; `{ expiresAt: 1 }` TTL 0                      | one binding per account; expired bindings deleted                       |
+| accountDeletions      | `{ userId: 1 }` unique                                                | one pending deletion per user; per-request "is it frozen?"              |
+| accountDeletions      | `{ state: 1, purgeAfter: 1 }`                                         | purge job: due and stale rows                                           |
+| rateLimits            | `{ expiresAt: 1 }` TTL 0                                              | expired rate-limit windows deleted (only with `RATE_LIMIT_STORE=mongo`) |
+| providerStates        | `{ provider: 1 }` unique                                              | one circuit-breaker row per provider                                    |
 
 ## Designs that were dropped
 

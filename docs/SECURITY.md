@@ -69,7 +69,7 @@
 
 ## Rate limits (spec 12.3, D-020)
 
-Redis fixed windows, keyed by HMAC of the subject (never the raw email or IP), all **fail closed**. Source of truth: `config/rate-limits.ts`.
+Fixed windows in Redis, or in MongoDB's `rateLimits` collection when `RATE_LIMIT_STORE=mongo` (D-040; one atomic update per hit, TTL cleanup). Keys are an HMAC of the subject (never the raw email or IP), and every rule **fails closed**. Source of truth: `config/rate-limits.ts`.
 
 | Rule                                      | Limit                                                        |
 | ----------------------------------------- | ------------------------------------------------------------ |

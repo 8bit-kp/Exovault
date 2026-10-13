@@ -531,3 +531,30 @@ The owner chose 2.
   - integration tests (a due identity is scanned and alerted in one run, not-yet-due ones are left, a due deletion is purged, frequencies are enforced);
   - a production server in cron mode: manual scan via `after()`, cron 401/200, a scheduled scan completed;
   - the built worker still starts.
+
+## D-040 — Rate limits without Redis (2026-10-13)
+
+**Context:** on Vercel with `SCHEDULER=cron` (D-039), Redis is used only for rate-limit counters, which includes the shared provider budget. The owner doesn't want a Redis service for now.
+
+**Options:**
+
+- In-memory counters: rejected. Every serverless instance would have its own, so the limits wouldn't hold.
+- No rate limits: rejected. Spec 12.3 is non-negotiable, and auth rules fail closed by design.
+- A MongoDB-backed store on the existing Atlas database.
+
+**Decision:**
+
+- `RATE_LIMIT_STORE=redis|mongo` (default `redis`).
+- `mongoStore` keeps one row per window in `rateLimits`: `_id` = the same `rl:<rule>:<keyed hash>` key, `count`, `expiresAt`.
+- Each hit is one atomic `findOneAndUpdate` with an aggregation-pipeline update. It starts a new window when the stored one has expired (or the row is new) and increments otherwise.
+- Two simultaneous first hits are resolved by retrying the duplicate-key loser as an update.
+- A TTL index (`npm run db:indexes`) deletes old rows. Rows past `expiresAt` but not yet deleted are treated as expired.
+- Failure semantics are unchanged: a database error fails closed. Redis is never contacted in this mode, because the client is created lazily.
+
+**Consequences:**
+
+- One small write per rate-limited action on the primary database; fine at this scale.
+- Switching back is just `RATE_LIMIT_STORE=redis` plus `REDIS_URL`.
+- **Verified:**
+  - integration tests: windows and reset, 20 concurrent first hits counting 1–20, keyed hashes only, the real 6th-sign-in refusal, fail-closed;
+  - a production server in cron mode with Redis unreachable: sign-in, scan and cron run all worked, with counters in MongoDB and no Redis connection attempts.

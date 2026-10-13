@@ -19,11 +19,11 @@ No second host: the web app runs on Vercel, scans run inside the request (`after
 
 **1. Services to create (all have free tiers):**
 
-| Service                        | What to set up                                                                                                                                                                                                                                                                |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| MongoDB Atlas (M0)             | A cluster in the region nearest your Vercel functions (default `iad1`, i.e. AWS us-east-1). A database user with `readWrite` on `exovault` only. Network Access: `0.0.0.0/0`, because Vercel has no fixed IPs on Hobby. So the user's long random password is the protection. |
-| Redis (Upstash or Redis Cloud) | One database; copy the TLS URL (`rediss://default:<password>@<host>:6379`). Only rate limits use it in this mode, so traffic is tiny.                                                                                                                                         |
-| SMTP                           | Brevo (no domain needed: verify one sender address; `smtp-relay.brevo.com:587`) or Resend (needs a verified domain to email anyone but yourself; `smtp.resend.com:465`, user `resend`, password = API key).                                                                   |
+| Service             | What to set up                                                                                                                                                                                                                                                                |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| MongoDB Atlas (M0)  | A cluster in the region nearest your Vercel functions (default `iad1`, i.e. AWS us-east-1). A database user with `readWrite` on `exovault` only. Network Access: `0.0.0.0/0`, because Vercel has no fixed IPs on Hobby. So the user's long random password is the protection. |
+| Redis: **optional** | Not needed with `RATE_LIMIT_STORE=mongo` (D-040): rate-limit counters then live in Atlas. To use Redis instead, create an Upstash database (free tier) and set `RATE_LIMIT_STORE=redis` and its `rediss://…` URL as `REDIS_URL`.                                              |
+| SMTP                | Brevo (no domain needed: verify one sender address; `smtp-relay.brevo.com:587`) or Resend (needs a verified domain to email anyone but yourself; `smtp.resend.com:465`, user `resend`, password = API key).                                                                   |
 
 **2. Environment variables** (Vercel → Project → Settings → Environment Variables, scope **Production**):
 
@@ -32,7 +32,7 @@ No second host: the web app runs on Vercel, scans run inside the request (`after
 | `APP_URL`                                                             | `https://<your-project>.vercel.app`, the exact production URL with no trailing slash                                         |
 | `MONGODB_URI`                                                         | Atlas URI **with `/exovault`**: `mongodb+srv://<user>:<password>@<cluster>.mongodb.net/exovault?retryWrites=true&w=majority` |
 | `MONGODB_URI_TEST`                                                    | same cluster, database `exovault_test` (validated at startup, never used in production)                                      |
-| `REDIS_URL`                                                           | the `rediss://…` URL                                                                                                         |
+| `RATE_LIMIT_STORE`                                                    | `mongo` (no Redis needed; `REDIS_URL` can stay unset, nothing connects to it)                                                |
 | `IDENTIFIER_ENCRYPTION_KEYS`                                          | `v1:` + `openssl rand -base64 32`                                                                                            |
 | `IDENTIFIER_ENCRYPTION_ACTIVE_KEY_ID`                                 | `v1`                                                                                                                         |
 | `BLIND_INDEX_PEPPER`                                                  | `openssl rand -base64 32`                                                                                                    |
@@ -47,7 +47,7 @@ No second host: the web app runs on Vercel, scans run inside the request (`after
 | `PROVIDER_MODE`                                                       | `mock` (labelled demo data), or `live` plus `HIBP_API_KEY` and `HIBP_REQUESTS_PER_MINUTE`                                    |
 | `PASSWORD_BREACH_CHECK`                                               | `on`                                                                                                                         |
 
-Leave unset: `NODE_ENV` (Vercel sets it), `DESIGN_SYSTEM_PAGES` (the `/design-system` reference pages 404 in production unless set to `on`), `EXOVAULT_ALLOW_TEST_SECRETS`, `NEXT_OUTPUT`, `WORKER_*`, `MONITORING_TICK_MS`, `NOTIFICATION_DISPATCH_MS`, `ACCOUNT_PURGE_MS` (worker only). The secrets must be **new values**, not the ones in your `.env.local`, and must never change once data exists. Losing `IDENTIFIER_ENCRYPTION_KEYS` makes stored addresses unreadable.
+Leave unset: `NODE_ENV` (Vercel sets it), `REDIS_URL` (with `RATE_LIMIT_STORE=mongo`), `DESIGN_SYSTEM_PAGES` (the `/design-system` reference pages 404 in production unless set to `on`), `EXOVAULT_ALLOW_TEST_SECRETS`, `NEXT_OUTPUT`, `WORKER_*`, `MONITORING_TICK_MS`, `NOTIFICATION_DISPATCH_MS`, `ACCOUNT_PURGE_MS` (worker only). The secrets must be **new values**, not the ones in your `.env.local`, and must never change once data exists. Losing `IDENTIFIER_ENCRYPTION_KEYS` makes stored addresses unreadable.
 
 **3. Create the indexes (and optionally the demo account) once, from your machine,** with the production values:
 

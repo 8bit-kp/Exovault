@@ -114,6 +114,7 @@ export function setupAuthHarness() {
       "notificationPreferences",
       "pendingSignups",
       "accountDeletions",
+      "rateLimits",
     ]) {
       await db.collection(name).deleteMany({});
     }

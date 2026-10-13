@@ -6,6 +6,7 @@ import { MongoClient } from "mongodb";
 import mongoose from "mongoose";
 import { getEnv } from "@/config/env";
 import { ensureAuthIndexes } from "@/lib/db/auth-indexes";
+import { ensureRateLimitIndexes } from "@/lib/rate-limit/mongo-store";
 import { AccountDeletion } from "@/models/AccountDeletion";
 import { AuditLog } from "@/models/AuditLog";
 import { Breach } from "@/models/Breach";
@@ -48,6 +49,7 @@ async function main() {
       );
     }
     const created = await ensureAuthIndexes(client.db());
+    created.push(await ensureRateLimitIndexes(client.db()));
     console.log(`better-auth collections: ${created.join(", ")}`);
   } finally {
     await client.close();

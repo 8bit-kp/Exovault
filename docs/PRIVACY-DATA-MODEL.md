@@ -4,16 +4,16 @@
 
 ## What we store about an account
 
-| Data                 | Where              | Form                                                              | Why                                      | Retention                        |
-| -------------------- | ------------------ | ----------------------------------------------------------------- | ---------------------------------------- | -------------------------------- |
-| Sign-in email        | `user.email`       | plaintext (needed to send account email and to sign in)           | authentication, account email            | life of the account              |
-| Display name         | `user.name`        | empty: we don't ask for one                                       | —                                        | —                                |
-| Password             | `account.password` | scrypt hash only                                                  | authentication                           | life of the account              |
-| Session              | `session`          | random token, expiry, browser user-agent; **no IP**               | keep you signed in, list/revoke sessions | 7 days, then TTL-deleted         |
-| Verification code    | `verification`     | hashed, 10 min                                                    | prove you own the address                | TTL-deleted at expiry            |
-| Password-reset token | `verification`     | SHA-256 hash, 30 min                                              | reset                                    | TTL-deleted at expiry, or on use |
-| Audit events         | `auditLogs`        | user ID, event, outcome, request ID, **keyed hashes** of email/IP | security investigation, abuse            | 12 months (TTL)                  |
-| Rate-limit counters  | Redis              | keyed hash of IP/email + count                                    | abuse prevention                         | the window (15 min to 1 day)     |
+| Data                 | Where                                     | Form                                                              | Why                                      | Retention                        |
+| -------------------- | ----------------------------------------- | ----------------------------------------------------------------- | ---------------------------------------- | -------------------------------- |
+| Sign-in email        | `user.email`                              | plaintext (needed to send account email and to sign in)           | authentication, account email            | life of the account              |
+| Display name         | `user.name`                               | empty: we don't ask for one                                       | —                                        | —                                |
+| Password             | `account.password`                        | scrypt hash only                                                  | authentication                           | life of the account              |
+| Session              | `session`                                 | random token, expiry, browser user-agent; **no IP**               | keep you signed in, list/revoke sessions | 7 days, then TTL-deleted         |
+| Verification code    | `verification`                            | hashed, 10 min                                                    | prove you own the address                | TTL-deleted at expiry            |
+| Password-reset token | `verification`                            | SHA-256 hash, 30 min                                              | reset                                    | TTL-deleted at expiry, or on use |
+| Audit events         | `auditLogs`                               | user ID, event, outcome, request ID, **keyed hashes** of email/IP | security investigation, abuse            | 12 months (TTL)                  |
+| Rate-limit counters  | Redis, or `rateLimits` in MongoDB (D-040) | keyed hash of IP/email + count                                    | abuse prevention                         | the window (15 min to 1 day)     |
 
 ## Monitored identifiers
 

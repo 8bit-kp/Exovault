@@ -1,6 +1,9 @@
 import type { RateLimitRule } from "@/config/rate-limits";
 import { keyedHash } from "@/lib/crypto/keyed-hash";
+import { getEnv } from "@/config/env";
+import { getAuthDb } from "@/lib/db/mongo-client";
 import { getRedis } from "@/lib/redis/client";
+import { mongoStore } from "./mongo-store";
 import { consume, redisStore, type RateLimitResult, type RateLimitStore } from "./limiter";
 
 export { RateLimitUnavailableError, type RateLimitResult } from "./limiter";
@@ -8,7 +11,8 @@ export { RateLimitUnavailableError, type RateLimitResult } from "./limiter";
 let store: RateLimitStore | undefined;
 
 function getStore(): RateLimitStore {
-  store ??= redisStore(getRedis());
+  // Redis by default; MongoDB for deployments without Redis (D-040).
+  store ??= getEnv().RATE_LIMIT_STORE === "mongo" ? mongoStore(getAuthDb()) : redisStore(getRedis());
   return store;
 }
 
