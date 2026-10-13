@@ -1,5 +1,5 @@
 import "server-only";
-import { randomBytes } from "node:crypto";
+import { randomBytes, timingSafeEqual } from "node:crypto";
 import { demoAccount, isDemoMode } from "@/config/demo";
 import { hashPassword } from "better-auth/crypto";
 import { getAuth } from "@/lib/auth/server";
@@ -128,6 +128,34 @@ export async function resetDemoData(userId: string, identityId: string): Promise
   );
   await recomputeRiskScore(userId, "remediation");
   return scan;
+}
+
+/**
+ * Self-healing demo sign-in (D-041): when someone signs in with exactly the
+ * configured demo credentials and that fails (account not created yet, or its
+ * password out of step with DEMO_ACCOUNT_PASSWORD), create or repair the
+ * account, and give a brand-new one its demo data. Returns true when the
+ * caller should retry the sign-in. Any other password changes nothing.
+ */
+export async function repairDemoAccountFor(email: string, password: string): Promise<boolean> {
+  if (!isDemoMode()) return false;
+  const configured = demoAccount();
+  if (!configured.password || email.trim().toLowerCase() !== configured.email.toLowerCase()) return false;
+  const given = Buffer.from(password);
+  const expected = Buffer.from(configured.password);
+  if (given.length !== expected.length || !timingSafeEqual(given, expected)) return false;
+  try {
+    const account = await provisionDemoAccount(configured.email, configured.password);
+    if ((await Scan.countDocuments({ userId: account.userId })) === 0) {
+      await resetDemoData(account.userId, account.identityId);
+    }
+    logger.info("demo account provisioned on sign-in");
+    return true;
+  } catch (error) {
+    logger.error({ err: error instanceof Error ? error.name : "unknown" }, "demo account repair failed");
+    // A concurrent first sign-in may have created it meanwhile: let the caller retry either way.
+    return true;
+  }
 }
 
 /** Daily cron, demo mode only: restore the shared account so every visitor sees the same demo. */

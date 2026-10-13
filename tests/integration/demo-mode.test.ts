@@ -82,10 +82,11 @@ describe("demo mode (D-041)", () => {
     expect(other[5]).toMatchObject({ ok: false, reason: "rate_limited" });
   });
 
-  it("keeps the password in step with DEMO_ACCOUNT_PASSWORD", async () => {
+  it("provisioning sets the stored password to the one given", async () => {
     await provisionDemoAccount(EMAIL, "an older demo password");
-    expect((await signIn({ email: EMAIL, password: PASSWORD }, ctx())).ok).toBe(false);
+    expect((await signIn({ email: EMAIL, password: "an older demo password" }, ctx())).ok).toBe(true);
     await provisionDemoAccount(EMAIL, PASSWORD);
+    expect((await signIn({ email: EMAIL, password: "an older demo password" }, ctx())).ok).toBe(false);
     expect((await signIn({ email: EMAIL, password: PASSWORD }, ctx())).ok).toBe(true);
   });
 
@@ -95,5 +96,31 @@ describe("demo mode (D-041)", () => {
     expect(isDemoMode()).toBe(true);
     expect(demoGuard()).toMatchObject({ status: "error" });
     expect(primaryCta()).toEqual({ href: "/auth/sign-in", label: "Try the demo" });
+  });
+
+  it("creates the demo account on the first sign-in with the configured credentials (no seed needed)", async () => {
+    configureScanProcessing({ policy: { ...DEFAULT_RETRY_POLICY, baseDelayMs: 1, maxDelayMs: 2 } });
+    expect(await getAuthDb().collection("user").countDocuments({ email: EMAIL })).toBe(0);
+    expect(await signIn({ email: EMAIL, password: PASSWORD }, ctx())).toEqual({ ok: true });
+    const userId = String((await getAuthDb().collection("user").findOne({ email: EMAIL }))!._id);
+    expect(await Exposure.countDocuments({ userId, isDemo: true })).toBeGreaterThan(0);
+  });
+
+  it("repairs a demo password that drifted from DEMO_ACCOUNT_PASSWORD", async () => {
+    await provisionDemoAccount(EMAIL, "an older demo password");
+    expect(await signIn({ email: EMAIL, password: PASSWORD }, ctx())).toEqual({ ok: true });
+  });
+
+  it("never creates or changes anything for other credentials", async () => {
+    expect(await signIn({ email: EMAIL, password: "not the demo password" }, ctx())).toMatchObject({
+      ok: false,
+      reason: "invalid",
+    });
+    expect(await getAuthDb().collection("user").countDocuments({ email: EMAIL })).toBe(0);
+    expect(await signIn({ email: "other@exovault.example", password: PASSWORD }, ctx())).toMatchObject({
+      ok: false,
+      reason: "invalid",
+    });
+    expect(await getAuthDb().collection("user").countDocuments()).toBe(0);
   });
 });

@@ -94,6 +94,7 @@ DEMO_ACCOUNT_PASSWORD=<12+ characters you're happy to share>
 - **What still works:** scans, checklists, statuses, monitoring, alert settings, export, the timeline and every page.
 - **Email:** nothing is sent at all, so the `SMTP_*` variables and `EMAIL_FROM` can be left unset.
 - **Rate limits:** the shared account has no per-account sign-in limit (its password is public); the per-IP limit still applies.
+- **No seed step needed:** signing in with exactly the configured demo email and password creates the account (with its demo data) if it doesn't exist, or re-syncs its password if it drifted, then signs in. Other credentials never create or change anything.
 - **Daily reset:** the cron restores the demo data, so every day starts clean. `npm run seed` (with the production variables) creates the account and sets its password the first time, and re-runs reset it.
 - `PROVIDER_MODE` must be `mock`.
 

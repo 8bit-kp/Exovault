@@ -587,3 +587,7 @@ The owner chose 2.
 - **Verified:**
   - integration tests: provisioning, reset undoing a visitor's changes, 8 viewers signing in without a lockout while other accounts keep the limit, password sync, discard provider, guard;
   - a production server in demo mode with no SMTP and no Redis: CTA, prefilled sign-in to dashboard, banner, locked deletion, revoke refused while a second viewer stays signed in, closed sign-up and reset pages, cron reset `true`, no SMTP or Redis activity.
+- **Addendum (2026-10-13), self-healing sign-in:**
+  - When a sign-in with exactly the configured demo email and password (compared in constant time) fails as invalid, `repairDemoAccountFor` runs: it creates the account (with demo data, if it has no scans) or re-syncs its password, then the sign-in is retried once.
+  - This removes the error-prone manual seed step on hosted deployments. Any other credentials never create or change anything.
+  - Tested in `demo-mode.test.ts`: first sign-in on an empty database, password drift, other credentials untouched. Also checked in a production server with an empty database.

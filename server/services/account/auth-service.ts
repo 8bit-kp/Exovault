@@ -4,6 +4,7 @@ import { hashPassword } from "better-auth/crypto";
 import { RATE_LIMITS, type RateLimitRule } from "@/config/rate-limits";
 import { recordAuditEvent } from "@/lib/audit";
 import { demoAccount, isDemoMode } from "@/config/demo";
+import { repairDemoAccountFor } from "@/server/services/demo/demo-account";
 import { getEnv } from "@/config/env";
 import { getAuth } from "@/lib/auth/server";
 import { isPasswordCompromised } from "better-auth/plugins/haveibeenpwned";
@@ -251,6 +252,8 @@ export async function resendVerificationCode(
 export async function signIn(
   input: { email: string; password: string },
   ctx: RequestContext,
+  /** Internal: set on the single retry after the demo account was repaired. */
+  demoRepaired = false,
 ): Promise<AuthResult<"verify-email">> {
   // The shared demo account's password is public (D-041): a per-account limit would only let one
   // visitor lock everyone else out. The per-IP limit still applies.
@@ -294,6 +297,10 @@ export async function signIn(
         : resend;
     }
     if (code === "INVALID_EMAIL_OR_PASSWORD" || code === "INVALID_EMAIL" || code === "INVALID_PASSWORD") {
+      // Demo mode: the configured demo credentials create or repair the shared account, then retry once.
+      if (isSharedDemoAccount && !demoRepaired && (await repairDemoAccountFor(input.email, input.password))) {
+        return signIn(input, ctx, true);
+      }
       await recordAuditEvent({
         event: "LOGIN_FAILED",
         outcome: "failure",
