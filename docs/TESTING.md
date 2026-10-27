@@ -108,3 +108,14 @@ Isolation: tests set their own env (`tests/setup/test-env.ts`) and never read `.
 - **Not yet covered:** a live E2E of an alert email through Mailpit. That needs a scheduled scan to fire inside a test, so integration covers it with the real email renderer instead.
 - **Not covered end to end:** the purge itself in E2E, since it runs after a 7-day grace period. Integration tests drive it with an injected clock instead.
 - **Container images:** CI builds both Dockerfiles. They are not run in CI; DECISIONS D-038 records how each stage was checked locally.
+
+## External integrations (D-042)
+
+Automated tests never call HIBP or Sender: providers get an injected `fetch`, and `config/env` refuses `EMAIL_TRANSPORT=sender` when `NODE_ENV=test`.
+
+| What                                                  | How it's tested                                                                                                                                  | Live?                              |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------- |
+| HIBP request shape, mapping, errors                   | `provider-contract.test.ts` (recorded breach models), `hibp-test-key.test.ts` (16 responses recorded with the test key on 2026-10-27)            | no (fixtures)                      |
+| HIBP with the test key                                | `npm run hibp:smoke` (`--all`, `--record`): real adapter vs. `@hibp-integration-tests.com` aliases only                                          | yes, opt-in, manual                |
+| Sender request shape, errors, no retries, log hygiene | `sender-email.test.ts` (mocked `fetch`)                                                                                                          | no                                 |
+| Sender end-to-end                                     | `npm run email:test -- --to <mailbox you control>`; Sender has no sandbox, so this sends one real email. Confirm in the inbox and Sender's Logs. | yes, opt-in, manual, one recipient |

@@ -107,7 +107,7 @@ npm run worker         # second terminal: scheduled monitoring, alerts, account 
 
 On macOS without Docker: `brew install redis mailpit`, then `brew services start redis` and run `mailpit`. On Windows, run Redis through Docker or WSL; Redis doesn't officially support native Windows.
 
-Other scripts: `npm run db:reset` (drops the local dev database), `npm run keys:rotate` (re-encrypts identifiers after changing the active key), `npm run env:init` (secrets only).
+Other scripts: `npm run db:reset` (drops the local dev database), `npm run keys:rotate` (re-encrypts identifiers after changing the active key), `npm run env:init` (secrets only), `npm run hibp:smoke` (live HIBP check against its test accounts with the free test key), `npm run email:test -- --to <your mailbox>` (one test email through the configured transport).
 
 ### Demo mode
 
@@ -133,11 +133,11 @@ CI runs all of these plus a production dependency audit, a gitleaks secret scan,
 
 ## Deploying
 
-**Vercel (no second host):** set `SCHEDULER=cron`, `SCAN_QUEUE=inline` and `RATE_LIMIT_STORE=mongo` (no Redis needed), add Atlas and an SMTP relay, and `vercel.json` schedules the daily cron. The step-by-step guide and every environment variable are in [Deployment → Vercel](docs/DEPLOYMENT.md#vercel-only-with-vercel-cron-d-039).
+**Vercel (no second host):** set `SCHEDULER=cron`, `SCAN_QUEUE=inline` and `RATE_LIMIT_STORE=mongo` (no Redis needed), add Atlas and Sender.net for email (`EMAIL_TRANSPORT=sender`), and `vercel.json` schedules the daily cron. The step-by-step guide and every environment variable are in [Deployment → Vercel](docs/DEPLOYMENT.md#vercel-only-with-vercel-cron-d-039).
 
 **Showcase without sign-up:** `DEMO_MODE=on` with `DEMO_ACCOUNT_PASSWORD` gives visitors one shared, prefilled demo account with fictional data. Account changes and email are off, and the data resets daily ([Deployment → Demo mode](docs/DEPLOYMENT.md#demo-mode-a-showcase-with-one-shared-account-d-041)).
 
-**Containers:** The web image (`Dockerfile`) is Next's standalone server. The worker image (`Dockerfile.worker`) holds the worker bundle and production dependencies. You need a managed or authenticated MongoDB, a Redis with `noeviction`, an SMTP relay, and HTTPS. See [Deployment](docs/DEPLOYMENT.md) for the full checklist, backups and the Atlas migration path.
+**Containers:** The web image (`Dockerfile`) is Next's standalone server. The worker image (`Dockerfile.worker`) holds the worker bundle and production dependencies. You need a managed or authenticated MongoDB, a Redis with `noeviction`, Sender.net (or any SMTP relay) for email, and HTTPS. See [Deployment](docs/DEPLOYMENT.md) for the full checklist, backups and the Atlas migration path.
 
 ## Limitations
 

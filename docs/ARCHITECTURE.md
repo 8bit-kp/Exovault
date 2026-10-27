@@ -88,7 +88,8 @@ Key rotation: new writes use the active key id. `npm run keys:rotate` (`server/s
 | Worker  | `npm run worker` (dev, tsx) · `node --conditions=react-server dist/worker.mjs` (prod). Never inside serverless functions. | `Dockerfile.worker`                  |
 | MongoDB | local Community Server 8.2, standalone (D-004); managed or authenticated self-hosted in any deployment                    | not containerised by this repo       |
 | Redis   | native or `docker compose up -d`; BullMQ queues and every rate limit (`maxmemory-policy noeviction`)                      | `docker-compose.yml` (dev)           |
-| Mailpit | `docker compose up -d` or the native binary; dev and E2E email only                                                       | `docker-compose.yml` (dev)           |
+| Mailpit | `docker compose up -d` or the native binary; dev and E2E email only (`EMAIL_TRANSPORT=smtp`)                              | `docker-compose.yml` (dev)           |
+| Email   | deployed: Sender.net REST API (`EMAIL_TRANSPORT=sender`, D-042), behind the same `EmailProvider` interface                | external service                     |
 
 **Without a worker (`SCHEDULER=cron`, e.g. Vercel; D-039):** scans run in the request via `after()`, and a platform cron calls `/api/cron/run`, which does the three periodic jobs in one pass. It awaits the scans it starts before dispatching alerts. The monitoring page offers only frequencies the cron interval can honour.
 

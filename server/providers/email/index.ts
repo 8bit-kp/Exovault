@@ -1,5 +1,6 @@
-import { getEnv } from "@/config/env";
+import { getEnv, parseMailbox } from "@/config/env";
 import type { EmailProvider } from "./interface";
+import { senderEmailProvider } from "./sender";
 import { smtpEmailProvider } from "./smtp";
 
 export type { EmailMessage, EmailProvider, EmailKind } from "./interface";
@@ -12,6 +13,15 @@ export function getEmailProvider(): EmailProvider {
     // Demo mode (D-041): the shared account's address is fictional and sign-up is off, so nothing is sent.
     if (env.DEMO_MODE === "on") {
       provider = { name: "demo-discard", send: async () => undefined };
+      return provider;
+    }
+    if (env.EMAIL_TRANSPORT === "sender") {
+      // config/env guarantees the token and a `Name <address>` EMAIL_FROM in this mode.
+      const from = parseMailbox(env.EMAIL_FROM)!;
+      provider = senderEmailProvider({
+        apiToken: env.SENDER_API_TOKEN!,
+        from: { email: from.email, name: from.name! },
+      });
       return provider;
     }
     provider = smtpEmailProvider({

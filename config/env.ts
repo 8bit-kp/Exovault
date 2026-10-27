@@ -28,6 +28,19 @@ export function databaseNameOf(uri: string): string {
   return new URL(uri).pathname.replace(/^\//, "");
 }
 
+/** HIBP's documented example test key: works only for @hibp-integration-tests.com addresses. */
+export const HIBP_TEST_API_KEY = "0".repeat(32);
+
+/** Splits `Name <address>` (or a bare address) into its parts; undefined if malformed. */
+export function parseMailbox(value: string): { email: string; name?: string } | undefined {
+  const match = /^\s*(?:"?([^"<>]*?)"?\s*<([^<>\s]+)>|([^<>\s]+))\s*$/.exec(value);
+  if (!match) return undefined;
+  const email = match[2] ?? match[3]!;
+  if (!z.email().safeParse(email).success) return undefined;
+  const name = match[1]?.trim();
+  return name ? { email, name } : { email };
+}
+
 /** 32 random bytes, base64-encoded (AES-256 key / HMAC pepper). */
 const base64Key32 = z.string().refine((value) => {
   try {
@@ -103,6 +116,10 @@ const envSchema = z
     SMTP_USER: z.string().min(1).optional(),
     SMTP_PASSWORD: z.string().min(1).optional(),
     EMAIL_FROM: z.string().default("Consltek Breach Monitoring <no-reply@exovault.example>"),
+    // smtp: nodemailer to SMTP_HOST (Mailpit in dev and E2E). sender: Sender.net REST API (production, D-042).
+    EMAIL_TRANSPORT: z.enum(["smtp", "sender"]).default("smtp"),
+    // Sender.net → Settings → API access tokens. Not an SMTP password, and unrelated to HIBP_API_KEY.
+    SENDER_API_TOKEN: z.string().min(20).optional(),
 
     // CI runs a production build with throwaway secrets; only CI sets this.
     EXOVAULT_ALLOW_TEST_SECRETS: z.enum(["0", "1"]).default("0"),
@@ -139,6 +156,45 @@ const envSchema = z
         code: "custom",
         path: ["HIBP_API_KEY"],
         message: "is required when PROVIDER_MODE=live",
+      });
+    }
+    if (env.EMAIL_TRANSPORT === "sender") {
+      if (!env.SENDER_API_TOKEN) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["SENDER_API_TOKEN"],
+          message: "is required when EMAIL_TRANSPORT=sender",
+        });
+      }
+      const from = parseMailbox(env.EMAIL_FROM);
+      if (!from?.name) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["EMAIL_FROM"],
+          message: "must look like `Name <address@verified-domain>` when EMAIL_TRANSPORT=sender",
+        });
+      }
+      // Automated tests must never reach a real mail API.
+      if (env.NODE_ENV === "test") {
+        ctx.addIssue({
+          code: "custom",
+          path: ["EMAIL_TRANSPORT"],
+          message: "cannot be sender when NODE_ENV=test",
+        });
+      }
+    }
+    // The test key returns 401 for every real address, so every user's scan would fail (D-042).
+    if (
+      env.NODE_ENV === "production" &&
+      env.PROVIDER_MODE === "live" &&
+      env.HIBP_API_KEY === HIBP_TEST_API_KEY &&
+      env.EXOVAULT_ALLOW_TEST_SECRETS !== "1"
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["HIBP_API_KEY"],
+        message:
+          "is HIBP's test key, which only answers for @hibp-integration-tests.com; use a paid key in production",
       });
     }
     // Production must never run with the throwaway keys used by tests and CI (D-035).

@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: 2026-10-12 (Vercel deployment support, D-039)_
+_Last updated: 2026-10-27 (Sender.net email and HIBP test key, D-042)_
 
 ## Phase 0: Repository audit (done)
 
@@ -274,13 +274,23 @@ Built, so M3 meets the spec instead of listing gaps (D-037, D-038):
 - [x] Vercel guide with every environment variable (DEPLOYMENT.md).
 - [x] Tests: unit (scheduler helpers, cron auth, env rules), integration (`scheduled-jobs.test.ts`); a production server checked in cron mode.
 
+## After M3: Sender.net email and HIBP test key (done, D-042)
+
+- [x] `EMAIL_TRANSPORT=sender`: Sender.net REST transport behind `EmailProvider`; Mailpit kept for dev and E2E.
+- [x] Env validation: token and named `EMAIL_FROM` required in sender mode; sender mode refused in tests; HIBP test key refused in live production.
+- [x] HIBP test key verified live (16 documented aliases recorded as fixtures; real address → 401 → provider failure).
+- [x] `npm run hibp:smoke`, `npm run email:test -- --to <mailbox>`.
+- [x] `/privacy`, PRIVACY-DATA-MODEL, DEPLOYMENT, PROVIDERS, TESTING updated.
+- [ ] Owner: verify `consltek.com` in Sender, set the Vercel env vars, send one controlled test email, buy the HIBP key.
+
 ## In progress
 
 None. All 13 phases are done.
 
 ## Blocked / needs owner input
 
-- **HIBP API key** (paid; Core 1 is enough for development). Needed only to run the live provider.
+- **HIBP API key** (paid; Core 1 is enough). The free test key only answers for HIBP's test addresses.
+- **Sender.net domain verification** for `consltek.com` (DNS records from the Sender dashboard), and the API token in the deployment env.
 
 ## Next (beyond the spec's milestones)
 

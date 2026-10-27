@@ -591,3 +591,27 @@ The owner chose 2.
   - When a sign-in with exactly the configured demo email and password (compared in constant time) fails as invalid, `repairDemoAccountFor` runs: it creates the account (with demo data, if it has no scans) or re-syncs its password, then the sign-in is retried once.
   - This removes the error-prone manual seed step on hosted deployments. Any other credentials never create or change anything.
   - Tested in `demo-mode.test.ts`: first sign-in on an empty database, password drift, other credentials untouched. Also checked in a production server with an empty database.
+
+## D-042 — Sender.net for production email; HIBP test key for integration checks (2026-10-27)
+
+**Context:** the owner wants to go live with real data: replace Mailpit with Sender.net (account and API token already created) and check the HIBP integration with HIBP's documented test key before buying a subscription.
+
+**Options (email):**
+
+- Sender's SMTP relay through the existing nodemailer transport: needs separate SMTP user credentials (Sender says its API token is not an SMTP password), and SMTP errors are less specific.
+- Sender's REST API (`POST https://api.sender.net/v2/message/send`, bearer token): Sender's recommended method for custom apps; JSON errors (401, 422, 429 with `Retry-After`); returns an `emailId` for tracing.
+- Remove Mailpit entirely: rejected. Local development and the Playwright journeys read codes from Mailpit's API, and they must never send real email.
+
+**Decision:**
+
+- New `server/providers/email/sender.ts` behind the existing `EmailProvider` interface; no SDK, plain `fetch`. Selected with `EMAIL_TRANSPORT=sender` (default `smtp`, i.e. Mailpit in dev/E2E). Templates, subjects and every workflow are unchanged.
+- `EMAIL_FROM` keeps its `Name <address>` form for both transports and is parsed for Sender's `from {email, name}`; validation requires the name and `SENDER_API_TOKEN` in sender mode, and refuses sender mode when `NODE_ENV=test`.
+- Only a 2xx with `success: true` counts as accepted. 401/403 → unauthorized, 400/422 → rejected (e.g. unverified `from` domain), 429/5xx/network/timeout → retryable. **No retries inside the transport**, because Sender has no idempotency key; the alert dispatcher's bounded retries and the user's "resend" stay the only retries. Logs carry the kind and Sender's `emailId`, never recipient, token or content.
+- HIBP: the adapter was already complete. The documented test key (`000…0`) was verified live: it answers only for `@hibp-integration-tests.com` and returns 401 for real addresses. Its 16 responses are recorded as fixtures; `npm run hibp:smoke` re-checks them live; production refuses the all-zero key when `PROVIDER_MODE=live`.
+
+**Consequences:**
+
+- Sender becomes a processor of recipient addresses and message content; `/privacy` and PRIVACY-DATA-MODEL list it.
+- Production email needs manual setup the code can't do: verifying `consltek.com` in Sender (SPF, DKIM, DMARC records shown by Sender) before `kishanpal.singh@consltek.com` can be the sender.
+- A send that times out after Sender accepted it can lead to a duplicate alert on the dispatcher's retry; a duplicate is preferred over a lost security alert.
+- The test key can't exercise the in-app flow (a test-domain address can't receive the ownership code), so in-app live scans still need the paid key.

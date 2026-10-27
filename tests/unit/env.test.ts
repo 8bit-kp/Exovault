@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { EnvValidationError, parseEnv } from "@/config/env";
+import { EnvValidationError, HIBP_TEST_API_KEY, parseEnv, parseMailbox } from "@/config/env";
 
 const key = () => randomBytes(32).toString("base64");
 
@@ -140,5 +140,57 @@ describe("parseEnv", () => {
     expect(issuesFor(validSource({ DEMO_ACCOUNT_PASSWORD: "short" })).join("\n")).toContain(
       "DEMO_ACCOUNT_PASSWORD must be at least 12 characters",
     );
+  });
+  it("uses SMTP by default; Sender needs a token and a `Name <address>` sender", () => {
+    expect(parseEnv(validSource()).EMAIL_TRANSPORT).toBe("smtp");
+    expect(issuesFor(validSource({ EMAIL_TRANSPORT: "sender" }))).toEqual([
+      expect.stringContaining("SENDER_API_TOKEN"),
+    ]);
+    const token = "s".repeat(40);
+    expect(
+      issuesFor(
+        validSource({ EMAIL_TRANSPORT: "sender", SENDER_API_TOKEN: token, EMAIL_FROM: "a@consltek.com" }),
+      ),
+    ).toEqual([expect.stringContaining("EMAIL_FROM")]);
+    const env = parseEnv(
+      validSource({
+        EMAIL_TRANSPORT: "sender",
+        SENDER_API_TOKEN: token,
+        EMAIL_FROM: "Consltek <kishanpal.singh@consltek.com>",
+      }),
+    );
+    expect(env.EMAIL_TRANSPORT).toBe("sender");
+  });
+
+  it("never lets automated tests use the real mail API", () => {
+    expect(
+      issuesFor(
+        validSource({
+          NODE_ENV: "test",
+          EMAIL_TRANSPORT: "sender",
+          SENDER_API_TOKEN: "s".repeat(40),
+          EMAIL_FROM: "Consltek <a@consltek.com>",
+        }),
+      ),
+    ).toEqual([expect.stringContaining("EMAIL_TRANSPORT")]);
+  });
+
+  it("refuses HIBP's test key in a live production deployment, but allows it elsewhere", () => {
+    const live = { PROVIDER_MODE: "live", HIBP_API_KEY: HIBP_TEST_API_KEY };
+    expect(parseEnv(validSource(live)).HIBP_API_KEY).toBe(HIBP_TEST_API_KEY); // development
+    expect(issuesFor(validSource({ ...live, NODE_ENV: "production" }))).toEqual([
+      expect.stringContaining("HIBP_API_KEY"),
+    ]);
+  });
+
+  it("parses mailboxes", () => {
+    expect(parseMailbox("Consltek <kishanpal.singh@consltek.com>")).toEqual({
+      name: "Consltek",
+      email: "kishanpal.singh@consltek.com",
+    });
+    expect(parseMailbox('"Consltek Alerts" <a@b.co>')).toEqual({ name: "Consltek Alerts", email: "a@b.co" });
+    expect(parseMailbox("a@b.co")).toEqual({ email: "a@b.co" });
+    expect(parseMailbox("Consltek <not-an-email>")).toBeUndefined();
+    expect(parseMailbox("")).toBeUndefined();
   });
 });

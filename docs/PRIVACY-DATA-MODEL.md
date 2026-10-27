@@ -76,11 +76,12 @@ Not deleted, because they hold nothing personal: the shared breach catalog and p
 
 ## Third parties that receive data today
 
-| Processor                                | What is sent                                                 | When                                                        |
-| ---------------------------------------- | ------------------------------------------------------------ | ----------------------------------------------------------- |
-| Have I Been Pwned (live mode only)       | the normalized monitored email address, over HTTPS           | each scan of a verified identity                            |
-| Pwned Passwords (api.pwnedpasswords.com) | first 5 hex characters of the password's SHA-1 (k-anonymity) | sign-up and password reset, when `PASSWORD_BREACH_CHECK=on` |
-| Email provider (SMTP)                    | recipient address, message                                   | verification, reset, account notices                        |
+| Processor                                | What is sent                                                                             | When                                                                     |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Have I Been Pwned (live mode only)       | the normalized monitored email address, over HTTPS                                       | each scan of a verified identity                                         |
+| Pwned Passwords (api.pwnedpasswords.com) | first 5 hex characters of the password's SHA-1 (k-anonymity)                             | sign-up and password reset, when `PASSWORD_BREACH_CHECK=on`              |
+| Sender.net (`EMAIL_TRANSPORT=sender`)    | recipient address (sign-in email or an address being verified), subject and message body | verification and reset codes, account notices, alerts the user turned on |
+| Mailpit (development only)               | same, but it never leaves the developer's machine                                        | local development and E2E tests                                          |
 
 ## Lawful basis (GDPR / India DPDP Act 2023)
 

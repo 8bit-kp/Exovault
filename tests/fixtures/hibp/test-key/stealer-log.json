@@ -1,0 +1,27 @@
+{
+  "status": 200,
+  "body": [
+    {
+      "Name": "StealerLogsJan2025",
+      "Title": "Stealer Logs, Jan 2025",
+      "Domain": "",
+      "BreachDate": "2025-01-13",
+      "AddedDate": "2025-01-13T19:41:58Z",
+      "ModifiedDate": "2025-01-15T00:04:36Z",
+      "PwnCount": 71039833,
+      "Description": "In January 2025, <a href=\"https://troyhunt.com/experimenting-with-stealer-logs-in-have-i-been-pwned/\" target=\"_blank\" rel=\"noopener\">stealer logs with 71M email addresses were added to HIBP</a>. Consisting of email address, password and the website the credentials were entered against, this breach marks the launch of a new HIBP feature enabling the retrieval of the specific websites the logs were collected against. The incident also resulted in 106M more passwords being added to the <a href=\"https://haveibeenpwned.com/Passwords\" rel=\"noopener\">Pwned Passwords service</a>.",
+      "LogoPath": "https://logos.haveibeenpwned.com/List.png",
+      "Attribution": null,
+      "DisclosureUrl": null,
+      "DataClasses": ["Email addresses", "Passwords"],
+      "IsVerified": true,
+      "IsFabricated": false,
+      "IsSensitive": false,
+      "IsRetired": false,
+      "IsSpamList": false,
+      "IsMalware": false,
+      "IsSubscriptionFree": false,
+      "IsStealerLog": true
+    }
+  ]
+}

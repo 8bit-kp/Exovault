@@ -97,8 +97,14 @@ export default function PrivacyPage() {
               "When you set a password",
             ],
             [
-              "Our email provider",
-              "Your sign-in email and the message",
+              <a
+                key="sender"
+                href="https://www.sender.net"
+                className="text-accent underline underline-offset-4"
+              >
+                Sender.net (our email provider)
+              </a>,
+              "The address the email goes to (your sign-in email, or an address you're verifying) and the message",
               "Codes, account notices and alerts you've turned on",
             ],
           ]}

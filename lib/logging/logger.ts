@@ -18,6 +18,7 @@ export const REDACTED_KEYS = [
   "verificationCode",
   "secret",
   "apiKey",
+  "apiToken",
   "authorization",
   "Authorization",
   "cookie",

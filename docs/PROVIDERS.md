@@ -15,7 +15,7 @@ Terms checked on **2026-10-06** from haveibeenpwned.com/API/v3 and /Subscription
 | Topic          | What HIBP requires / offers                                                                                                                              | What we do                                                                                       |
 | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | Key            | `hibp-api-key` header (32 hex chars) for any search by email                                                                                             | `HIBP_API_KEY`, validated at startup; required when `PROVIDER_MODE=live`                         |
-| User-Agent     | mandatory and must describe the consumer accurately (403 otherwise)                                                                                      | `Exovault/0.1 (+APP_URL)`                                                                        |
+| User-Agent     | mandatory and must describe the consumer accurately (403 otherwise)                                                                                      | `consltek-breach-monitoring/0.1 (+APP_URL)` (from `config/brand.ts`)                             |
 | Endpoint       | `GET /api/v3/breachedAccount/{email}?truncateResponse=false`; 404 = not pwned                                                                            | the only URL we call (constant base; percent-encoded, normalized address); redirects refused     |
 | Rate limits    | per subscription. Core 1: 10 RPM ($4.39/mo); Core 2: 50; Core 3: 100; Core 4: 500; Core 5: 1,000; Pro/High RPM higher. 429 + `retry-after` (seconds)     | shared Redis budget per provider (`HIBP_REQUESTS_PER_MINUTE`, default 10); Retry-After honoured  |
 | Licence        | breach data is **CC BY 4.0**: "clear and visible attribution with a link to haveibeenpwned.com should be present anywhere data from the service is used" | capability `attribution`; the UI must render it wherever HIBP-sourced exposures appear (Phase 7) |
@@ -46,7 +46,26 @@ Terms checked on **2026-10-06** from haveibeenpwned.com/API/v3 and /Subscription
 
 **Fixtures** (`tests/fixtures/hibp/`) were recorded on 2026-10-06 from HIBP's public, keyless breach endpoints: Adobe, LinkedIn, AshleyMadison (sensitive), Canva, June2026StealerLogs, Acuity (spam list), Zoosk (fabricated), and the data-class list. Account responses are assembled from these breach models. No real person's email was looked up.
 
-**Running live** needs a paid key from the project owner (D-012). Set `PROVIDER_MODE=live`, `HIBP_API_KEY` and `HIBP_REQUESTS_PER_MINUTE`.
+### Test API key (checked 2026-10-27, D-042)
+
+HIBP documents a test key, `00000000000000000000000000000000` ("any value that conforms to the required key format"), that gives "limited access (typically to test email addresses)". Verified live on 2026-10-27:
+
+| Request with the test key                            | Result                                                                                                                        |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `breachedAccount/<alias>@hibp-integration-tests.com` | real HIBP responses for the 16 documented aliases (10 × 200 with breaches, 6 × 404)                                           |
+| `breachedAccount/<any real address>`                 | **401** "Access denied due to invalid subscription key" → `unauthorized`, shown as a provider failure, never as "no findings" |
+| no `user-agent`                                      | 403 "API request must include a user agent"                                                                                   |
+| malformed key (e.g. `abc`)                           | 401 "improperly formed hibp-api-key"                                                                                          |
+
+So the test key proves the request shape, headers, parsing and error handling, but it **cannot** check a real user's address. In the app, a user can only scan an address they have verified by email, and `@hibp-integration-tests.com` can't receive mail, so the test key is exercised outside the app:
+
+- `npm run hibp:smoke`: runs the real adapter against 3 test aliases (`--all` for all 16, paced under 10 requests a minute). Uses `HIBP_API_KEY` if set, otherwise the test key. Only test-domain addresses are ever queried.
+- `npm run hibp:smoke -- --record`: re-records `tests/fixtures/hibp/test-key/*.json`, which `tests/unit/hibp-test-key.test.ts` replays offline.
+- Startup validation refuses the all-zero test key when `NODE_ENV=production` and `PROVIDER_MODE=live`: every real scan would fail.
+
+Not testable with the test key: pastes, stealer-log and domain-search endpoints (not used by the app), and real addresses. The `subscription-free-*` aliases returned fewer breaches than the docs describe (2 instead of 3, and a 404); the fixtures record what the API actually returned.
+
+**Running live** needs a paid key from the project owner (D-012). Set `PROVIDER_MODE=live`, `HIBP_API_KEY` and `HIBP_REQUESTS_PER_MINUTE`. Switching from the test key to a paid key is only a change to `HIBP_API_KEY`.
 
 ## Demo / mock providers (`mock/`)
 

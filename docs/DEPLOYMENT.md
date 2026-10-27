@@ -10,7 +10,7 @@
 | Worker    | **always required**: it alone runs scheduled monitoring, alert emails and the account purge, and with `SCAN_QUEUE=bullmq` every scan. A long-running container (`Dockerfile.worker`) or VM running `npm run worker:build` then `node --conditions=react-server dist/worker.mjs`; never a serverless function. It needs the same env as the web app. Scale it by running more instances; scheduling claims are atomic. It stops gracefully on SIGTERM (finishes in-flight scans, 30 s limit). |
 | MongoDB   | a managed cluster (e.g. Atlas) or an authenticated self-hosted instance. **Never an open instance.** Use a least-privilege user with read/write on the app database only. A standalone server works (no transactions needed, D-004).                                                                                                                                                                                                                                                         |
 | Redis     | managed or self-hosted, with `maxmemory-policy noeviction` and auth/TLS. Used for rate limits, provider budgets and the BullMQ queues. Rate limits **fail closed**, so Redis is required.                                                                                                                                                                                                                                                                                                    |
-| Email     | a transactional provider's SMTP relay (`SMTP_HOST/PORT/SECURE/USER/PASSWORD`, `EMAIL_FROM` on a domain with SPF/DKIM).                                                                                                                                                                                                                                                                                                                                                                       |
+| Email     | Sender.net's REST API (`EMAIL_TRANSPORT=sender`, `SENDER_API_TOKEN`, `EMAIL_FROM` on a domain verified in Sender with SPF/DKIM/DMARC; D-042), or any SMTP relay (`EMAIL_TRANSPORT=smtp`, `SMTP_*`).                                                                                                                                                                                                                                                                                          |
 | Proxy     | if a load balancer or CDN sits in front, set `TRUSTED_PROXY_COUNT` to the number of hops that append `X-Forwarded-For` (D-021).                                                                                                                                                                                                                                                                                                                                                              |
 
 ## Vercel only, with Vercel Cron (D-039)
@@ -23,29 +23,30 @@ No second host: the web app runs on Vercel, scans run inside the request (`after
 | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | MongoDB Atlas (M0)  | A cluster in the region nearest your Vercel functions (default `iad1`, i.e. AWS us-east-1). A database user with `readWrite` on `exovault` only. Network Access: `0.0.0.0/0`, because Vercel has no fixed IPs on Hobby. So the user's long random password is the protection. |
 | Redis: **optional** | Not needed with `RATE_LIMIT_STORE=mongo` (D-040): rate-limit counters then live in Atlas. To use Redis instead, create an Upstash database (free tier) and set `RATE_LIMIT_STORE=redis` and its `rediss://…` URL as `REDIS_URL`.                                              |
-| SMTP                | Brevo (no domain needed: verify one sender address; `smtp-relay.brevo.com:587`) or Resend (needs a verified domain to email anyone but yourself; `smtp.resend.com:465`, user `resend`, password = API key).                                                                   |
+| Sender.net          | Transactional emails available on all plans. Add and verify your sending domain (Sender shows the exact SPF, DKIM and DMARC records to add at your DNS host), then create an API access token (Settings → API access tokens). See "Email with Sender.net" below.              |
 
 **2. Environment variables** (Vercel → Project → Settings → Environment Variables, scope **Production**):
 
-| Variable                                                              | Value                                                                                                                        |
-| --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `APP_URL`                                                             | `https://<your-project>.vercel.app`, the exact production URL with no trailing slash                                         |
-| `MONGODB_URI`                                                         | Atlas URI **with `/exovault`**: `mongodb+srv://<user>:<password>@<cluster>.mongodb.net/exovault?retryWrites=true&w=majority` |
-| `MONGODB_URI_TEST`                                                    | same cluster, database `exovault_test` (validated at startup, never used in production)                                      |
-| `RATE_LIMIT_STORE`                                                    | `mongo` (no Redis needed; `REDIS_URL` can stay unset, nothing connects to it)                                                |
-| `IDENTIFIER_ENCRYPTION_KEYS`                                          | `v1:` + `openssl rand -base64 32`                                                                                            |
-| `IDENTIFIER_ENCRYPTION_ACTIVE_KEY_ID`                                 | `v1`                                                                                                                         |
-| `BLIND_INDEX_PEPPER`                                                  | `openssl rand -base64 32`                                                                                                    |
-| `AUTH_SECRET`                                                         | `openssl rand -hex 32`                                                                                                       |
-| `SCHEDULER`                                                           | `cron`                                                                                                                       |
-| `SCAN_QUEUE`                                                          | `inline`                                                                                                                     |
-| `CRON_SECRET`                                                         | `openssl rand -hex 32`                                                                                                       |
-| `CRON_INTERVAL_MINUTES`                                               | `1440` (matches the daily schedule in `vercel.json`; Hobby allows at most daily)                                             |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD` | from the SMTP provider (`SMTP_SECURE=true` only for port 465)                                                                |
-| `EMAIL_FROM`                                                          | `Exovault <the-verified-sender@…>`                                                                                           |
-| `TRUSTED_PROXY_COUNT`                                                 | `1` (Vercel's edge sets `X-Forwarded-For`)                                                                                   |
-| `PROVIDER_MODE`                                                       | `mock` (labelled demo data), or `live` plus `HIBP_API_KEY` and `HIBP_REQUESTS_PER_MINUTE`                                    |
-| `PASSWORD_BREACH_CHECK`                                               | `on`                                                                                                                         |
+| Variable                              | Value                                                                                                                                             |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `APP_URL`                             | `https://<your-project>.vercel.app`, the exact production URL with no trailing slash                                                              |
+| `MONGODB_URI`                         | Atlas URI **with `/exovault`**: `mongodb+srv://<user>:<password>@<cluster>.mongodb.net/exovault?retryWrites=true&w=majority`                      |
+| `MONGODB_URI_TEST`                    | same cluster, database `exovault_test` (validated at startup, never used in production)                                                           |
+| `RATE_LIMIT_STORE`                    | `mongo` (no Redis needed; `REDIS_URL` can stay unset, nothing connects to it)                                                                     |
+| `IDENTIFIER_ENCRYPTION_KEYS`          | `v1:` + `openssl rand -base64 32`                                                                                                                 |
+| `IDENTIFIER_ENCRYPTION_ACTIVE_KEY_ID` | `v1`                                                                                                                                              |
+| `BLIND_INDEX_PEPPER`                  | `openssl rand -base64 32`                                                                                                                         |
+| `AUTH_SECRET`                         | `openssl rand -hex 32`                                                                                                                            |
+| `SCHEDULER`                           | `cron`                                                                                                                                            |
+| `SCAN_QUEUE`                          | `inline`                                                                                                                                          |
+| `CRON_SECRET`                         | `openssl rand -hex 32`                                                                                                                            |
+| `CRON_INTERVAL_MINUTES`               | `1440` (matches the daily schedule in `vercel.json`; Hobby allows at most daily)                                                                  |
+| `EMAIL_TRANSPORT`                     | `sender`                                                                                                                                          |
+| `SENDER_API_TOKEN`                    | the Sender API access token (sensitive; never `NEXT_PUBLIC_`)                                                                                     |
+| `EMAIL_FROM`                          | `Consltek <kishanpal.singh@consltek.com>`: a name and an address on the domain verified in Sender                                                 |
+| `TRUSTED_PROXY_COUNT`                 | `1` (Vercel's edge sets `X-Forwarded-For`)                                                                                                        |
+| `PROVIDER_MODE`                       | `mock` (labelled demo data), or `live` plus a **paid** `HIBP_API_KEY` and `HIBP_REQUESTS_PER_MINUTE` (the HIBP test key is refused in production) |
+| `PASSWORD_BREACH_CHECK`               | `on`                                                                                                                                              |
 
 Leave unset: `NODE_ENV` (Vercel sets it), `REDIS_URL` (with `RATE_LIMIT_STORE=mongo`), `DESIGN_SYSTEM_PAGES` (the `/design-system` reference pages 404 in production unless set to `on`), `EXOVAULT_ALLOW_TEST_SECRETS`, `NEXT_OUTPUT`, `WORKER_*`, `MONITORING_TICK_MS`, `NOTIFICATION_DISPATCH_MS`, `ACCOUNT_PURGE_MS` (worker only). The secrets must be **new values**, not the ones in your `.env.local`, and must never change once data exists. Losing `IDENTIFIER_ENCRYPTION_KEYS` makes stored addresses unreadable.
 
@@ -92,13 +93,13 @@ DEMO_ACCOUNT_PASSWORD=<12+ characters you're happy to share>
 - **What visitors see:** the CTAs say **Try the demo**, and the sign-in page shows the demo email and password, prefilled. A password sign-in on the (already verified) account goes straight to the dashboard, with no code needed.
 - **What's switched off:** sign-up, email verification and password reset show a "closed in the demo" page. Adding or removing addresses, deleting the account, and signing out other viewers' sessions are refused on the server.
 - **What still works:** scans, checklists, statuses, monitoring, alert settings, export, the timeline and every page.
-- **Email:** nothing is sent at all, so the `SMTP_*` variables and `EMAIL_FROM` can be left unset.
+- **Email:** nothing is sent at all, so `EMAIL_TRANSPORT`, `SENDER_API_TOKEN`, the `SMTP_*` variables and `EMAIL_FROM` can be left unset.
 - **Rate limits:** the shared account has no per-account sign-in limit (its password is public); the per-IP limit still applies.
 - **No seed step needed:** signing in with exactly the configured demo email and password creates the account (with its demo data) if it doesn't exist, or re-syncs its password if it drifted, then signs in. Other credentials never create or change anything.
 - **Daily reset:** the cron restores the demo data, so every day starts clean. `npm run seed` (with the production variables) creates the account and sets its password the first time, and re-runs reset it.
 - `PROVIDER_MODE` must be `mock`.
 
-To open the product to real users later, remove `DEMO_MODE` (and set up SMTP).
+To open the product to real users later, remove `DEMO_MODE` (and set up Sender.net, below).
 
 ## Container images (D-038)
 
@@ -148,3 +149,15 @@ Suggested hosts:
 1. Add a new key to `IDENTIFIER_ENCRYPTION_KEYS` (e.g. `v1:…,v2:…`) and set `IDENTIFIER_ENCRYPTION_ACTIVE_KEY_ID=v2`. Deploy.
 2. Run `npm run keys:rotate` until it reports `rotated: 0, failed: 0`.
 3. Only then remove `v1` from the keyring.
+
+## Email with Sender.net (D-042)
+
+Mailpit stays the transport for local development and E2E tests (`EMAIL_TRANSPORT=smtp`, docker-compose). Deployed environments use Sender.net's REST API.
+
+1. **Verify the sending domain** in your Sender account's domain settings. Sender displays the exact SPF, DKIM and DMARC records; add them at the DNS host for `consltek.com` and click "Recheck DNS records" until all three pass. Sender requires the `from` address to be on a verified domain, so `kishanpal.singh@consltek.com` works only after `consltek.com` passes. (The account's login email is not automatically a verified sender.)
+2. **Create an API access token** (Settings → API access tokens). It is not an SMTP password, and Sender's separate SMTP users aren't used.
+3. **Set** `EMAIL_TRANSPORT=sender`, `SENDER_API_TOKEN`, `EMAIL_FROM=Consltek <kishanpal.singh@consltek.com>` (startup validation rejects a missing token or a `from` without a name).
+4. **Test with one controlled recipient** before real users: `npm run email:test -- --to <a mailbox you own>`, with the production env loaded as in step 3 above. Sender has no sandbox, so this sends a real email.
+5. **Confirm delivery** in the inbox and in Sender's Transactional emails → Logs. A successful API response (`{"success": true, "emailId": …}`) only means Sender _accepted_ the message; the log shows whether it was delivered or bounced. The app logs `emailId` (never the recipient) so a message can be traced.
+
+Behaviour: no automatic retry inside the transport, because Sender has no idempotency key and a retry after a timeout could send twice. Failed alert emails are retried by the dispatcher up to its attempt limit; a timeout that Sender had in fact accepted can therefore produce a duplicate alert (a duplicate is preferred over a lost security alert). Auth emails surface the error and the user can press "resend".
