@@ -244,6 +244,19 @@ const envSchema = z
 
 export type Env = z.infer<typeof envSchema>;
 
+/** The email processor this deployment sends through, named on /privacy (spec 2.3). */
+export function emailProcessorOf(env: Pick<Env, "EMAIL_TRANSPORT" | "SMTP_HOST">): {
+  name: string;
+  url?: string;
+} {
+  if (env.EMAIL_TRANSPORT === "sender") return { name: "Sender.net", url: "https://www.sender.net" };
+  const host = env.SMTP_HOST.toLowerCase();
+  if (host === "brevo.com" || host.endsWith(".brevo.com"))
+    return { name: "Brevo", url: "https://www.brevo.com" };
+  if (host === "127.0.0.1" || host === "localhost") return { name: "Mailpit (local development only)" };
+  return { name: "Our email provider" };
+}
+
 export class EnvValidationError extends Error {
   constructor(readonly issues: string[]) {
     super(`Invalid environment configuration:\n${issues.map((i) => `  - ${i}`).join("\n")}`);

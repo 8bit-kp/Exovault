@@ -287,7 +287,9 @@ Built, so M3 meets the spec instead of listing gaps (D-037, D-038):
 
 - [x] D-041 showcase mode reverted; mock providers and the local seed kept.
 - [x] Production email runs on Brevo's SMTP relay (`EMAIL_TRANSPORT=smtp`); a test email was delivered to the owner's inbox (2026-11-02).
-- [ ] Owner: delete the old shared demo account from the production database; remove `DEMO_*` from Vercel.
+- [x] Deployed to production (exovault.vercel.app, 2026-11-02): demo mode off, Brevo email variables set, `DEMO_*` removed from Vercel.
+- [x] Old shared demo account deleted from the production database with `npm run account:delete` (dry run, then `--confirm`; re-check found nothing).
+- [x] `/privacy` names the email processor actually configured (Brevo in production).
 
 ## In progress
 

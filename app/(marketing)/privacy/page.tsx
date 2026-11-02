@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { InfoPage, InfoSection, InfoTable } from "@/components/marketing/info-page";
 import { brand } from "@/config/brand";
-import { getEnv } from "@/config/env";
+import { emailProcessorOf, getEnv } from "@/config/env";
 
 export const metadata: Metadata = {
   title: "Privacy",
@@ -10,7 +10,9 @@ export const metadata: Metadata = {
 };
 
 export default function PrivacyPage() {
-  const graceDays = getEnv().ACCOUNT_DELETION_GRACE_DAYS;
+  const env = getEnv();
+  const graceDays = env.ACCOUNT_DELETION_GRACE_DAYS;
+  const emailProcessor = emailProcessorOf(env);
   return (
     <InfoPage
       eyebrow="Privacy"
@@ -97,13 +99,13 @@ export default function PrivacyPage() {
               "When you set a password",
             ],
             [
-              <a
-                key="sender"
-                href="https://www.sender.net"
-                className="text-accent underline underline-offset-4"
-              >
-                Sender.net (our email provider)
-              </a>,
+              emailProcessor.url ? (
+                <a key="email" href={emailProcessor.url} className="text-accent underline underline-offset-4">
+                  {emailProcessor.name} (our email provider)
+                </a>
+              ) : (
+                emailProcessor.name
+              ),
               "The address the email goes to (your sign-in email, or an address you're verifying) and the message",
               "Codes, account notices and alerts you've turned on",
             ],

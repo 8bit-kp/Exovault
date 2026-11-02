@@ -1,6 +1,12 @@
 import { randomBytes } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { EnvValidationError, HIBP_TEST_API_KEY, parseEnv, parseMailbox } from "@/config/env";
+import {
+  emailProcessorOf,
+  EnvValidationError,
+  HIBP_TEST_API_KEY,
+  parseEnv,
+  parseMailbox,
+} from "@/config/env";
 
 const key = () => randomBytes(32).toString("base64");
 
@@ -179,5 +185,16 @@ describe("parseEnv", () => {
     expect(parseMailbox("a@b.co")).toEqual({ email: "a@b.co" });
     expect(parseMailbox("Consltek <not-an-email>")).toBeUndefined();
     expect(parseMailbox("")).toBeUndefined();
+  });
+
+  it("names the email processor actually configured (for /privacy)", () => {
+    expect(emailProcessorOf({ EMAIL_TRANSPORT: "smtp", SMTP_HOST: "smtp-relay.brevo.com" }).name).toBe(
+      "Brevo",
+    );
+    expect(emailProcessorOf({ EMAIL_TRANSPORT: "sender", SMTP_HOST: "127.0.0.1" }).name).toBe("Sender.net");
+    expect(emailProcessorOf({ EMAIL_TRANSPORT: "smtp", SMTP_HOST: "127.0.0.1" }).name).toMatch(/Mailpit/);
+    expect(emailProcessorOf({ EMAIL_TRANSPORT: "smtp", SMTP_HOST: "evilbrevo.com" }).name).toBe(
+      "Our email provider",
+    );
   });
 });
