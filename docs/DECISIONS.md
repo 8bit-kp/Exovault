@@ -626,3 +626,4 @@ The owner chose 2.
 
 - Setting `DEMO_MODE` now does nothing (unknown variables are ignored).
 - **The shared demo account created in production by D-041 still exists, with a password that was public.** Without the guards it is an ordinary account, so it must be deleted from the production database (owner's action; not done by this change).
+- `npm run account:delete -- --email <address> [--confirm]` deletes one account with the purge job's own `eraseAccountData` (dry run by default; prints the target database; sends no email; records `ACCOUNT_DELETED` without a user reference).

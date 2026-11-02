@@ -24,7 +24,8 @@
     "worker": "tsx --conditions=react-server --env-file-if-exists=.env.local workers/index.ts",
     "worker:build": "esbuild workers/index.ts --bundle --platform=node --target=node22 --format=esm --packages=external --tsconfig=tsconfig.worker.json --outfile=dist/worker.mjs",
     "hibp:smoke": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/hibp-smoke.ts",
-    "email:test": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/email-test.ts"
+    "email:test": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/email-test.ts",
+    "account:delete": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/delete-account.ts"
   },
   "dependencies": {
     "better-auth": "^1.7.7",

@@ -232,14 +232,11 @@ export async function purgeDueAccounts(now = new Date()): Promise<{ purged: numb
   }
 }
 
-async function purgeAccount(
-  userId: string,
-  emailEncrypted: Parameters<typeof decryptField>[0],
-  attempts: number,
-  now: Date,
-): Promise<void> {
-  const email = decryptField(emailEncrypted, deletionAad(userId));
-
+/**
+ * Deletes everything held for one account, idempotently, and anonymises its audit trail.
+ * Used by the purge job, and by `scripts/delete-account.ts` for operator deletions.
+ */
+export async function eraseAccountData(userId: string, email: string): Promise<void> {
   // Product data. Every step is an idempotent delete scoped by userId.
   await Promise.all([
     Scan.deleteMany({ userId }),
@@ -271,6 +268,17 @@ async function purgeAccount(
     { $or: [{ userId }, { subjectHash: keyedHash("audit-subject", email.trim().toLowerCase()) }] },
     { $set: { userId: null, subjectHash: null } },
   );
+}
+
+async function purgeAccount(
+  userId: string,
+  emailEncrypted: Parameters<typeof decryptField>[0],
+  attempts: number,
+  now: Date,
+): Promise<void> {
+  const email = decryptField(emailEncrypted, deletionAad(userId));
+
+  await eraseAccountData(userId, email);
 
   try {
     await getEmailProvider().send(accountDeletedMessage(email));
