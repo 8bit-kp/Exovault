@@ -37,7 +37,7 @@ async function main() {
       html: `<p>This is a delivery test from <strong>${brand.name}</strong> (${env.APP_URL}), sent ${sentAt}.</p><p>No action is needed.</p>`,
     });
     console.log(
-      "Accepted by the provider. Now check the inbox (and spam folder), and for Sender: Transactional emails → Logs.",
+      "Accepted by the provider. Now check the inbox (and spam folder), and the email provider's logs (Brevo: Transactional → Logs; Sender: Transactional emails → Logs).",
     );
   } catch (error) {
     console.error(`Not sent: ${error instanceof Error ? error.message : "unknown error"}`);
