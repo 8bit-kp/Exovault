@@ -2,6 +2,7 @@ import { Types } from "mongoose";
 import { describe, expect, it } from "vitest";
 import { getAuthDb } from "@/lib/db/mongo-client";
 import { Identity } from "@/models/Identity";
+import { IdentityQuota } from "@/models/IdentityQuota";
 import {
   addEmailIdentity,
   listIdentities,
@@ -86,6 +87,22 @@ describe("adding an email identity", () => {
     expect(results.filter((r) => r.ok)).toHaveLength(1);
     expect(results.filter((r) => !r.ok && r.reason === "limit_reached")).toHaveLength(3);
     expect(await Identity.countDocuments({ userId: a.userId })).toBe(1);
+  });
+
+  it("heals a counter left behind by a crash, but never a fresh one", async () => {
+    const a = actor();
+    // A claim whose identity was never inserted: the counter says 1, the real count is 0.
+    await IdentityQuota.create({ userId: a.userId, active: 1 });
+    expect(await addEmailIdentity(a, "x@example.org", ctx)).toMatchObject({
+      ok: false,
+      reason: "limit_reached",
+    });
+    // A minute later the counter is treated as drift and recomputed.
+    await IdentityQuota.collection.updateOne(
+      { userId: a.userId },
+      { $set: { updatedAt: new Date(Date.now() - 2 * 60_000) } },
+    );
+    expect(await addEmailIdentity(a, "x@example.org", ctx)).toMatchObject({ ok: true });
   });
 
   it("frees the slot when an identity is removed", async () => {

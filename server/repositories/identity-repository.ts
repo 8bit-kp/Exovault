@@ -126,7 +126,13 @@ async function countActive(userId: string): Promise<number> {
  * single document, so concurrent requests can't overshoot the limit. If the
  * counter has drifted (e.g. a crash between claim and insert), it is
  * recomputed from the real count once and the claim retried.
+ *
+ * Only a counter untouched for QUOTA_REPAIR_AFTER_MS is repaired: a fresh one
+ * may include a concurrent claim whose identity isn't inserted yet, and
+ * "repairing" it would let both requests through.
  */
+const QUOTA_REPAIR_AFTER_MS = 60_000;
+
 export async function claimIdentitySlot(userId: string, limit: number): Promise<boolean> {
   await connectToDatabase();
   const attempt = async () => {
@@ -146,7 +152,11 @@ export async function claimIdentitySlot(userId: string, limit: number): Promise<
   if (await attempt()) return true;
   const actual = await countActive(userId);
   const repaired = await IdentityQuota.updateOne(
-    { userId, active: mongoose.trusted({ $gt: actual }) },
+    {
+      userId,
+      active: mongoose.trusted({ $gt: actual }),
+      updatedAt: mongoose.trusted({ $lt: new Date(Date.now() - QUOTA_REPAIR_AFTER_MS) }),
+    },
     { $set: { active: actual } },
   );
   return repaired.modifiedCount === 1 ? attempt() : false;
