@@ -22,11 +22,6 @@ async function main() {
   const env = getEnv();
   const provider = getEmailProvider();
   console.log(`Transport: ${env.EMAIL_TRANSPORT} (${provider.name}); from: ${env.EMAIL_FROM}`);
-  if (provider.name === "demo-discard") {
-    console.error("DEMO_MODE=on discards every email, so nothing would be sent. Turn demo mode off first.");
-    process.exitCode = 1;
-    return;
-  }
   const sentAt = new Date().toISOString();
   try {
     await provider.send({

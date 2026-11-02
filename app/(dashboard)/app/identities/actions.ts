@@ -1,6 +1,5 @@
 "use server";
 
-import { demoGuard } from "@/config/demo";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -48,8 +47,6 @@ async function context() {
 }
 
 export async function addIdentityAction(_prev: FormState, formData: FormData): Promise<FormState> {
-  const blocked = demoGuard(); // D-041: the shared demo account stays as it is
-  if (blocked) return blocked;
   const session = await requireSession();
   const flow = flowSchema.parse(formData.get("flow"));
   const value = formData.get("useAccountEmail") === "1" ? session.user.email : formData.get("email");
@@ -86,8 +83,6 @@ export async function addIdentityAction(_prev: FormState, formData: FormData): P
 }
 
 export async function verifyIdentityAction(_prev: FormState, formData: FormData): Promise<FormState> {
-  const blocked = demoGuard(); // D-041: the shared demo account stays as it is
-  if (blocked) return blocked;
   const session = await requireSession();
   const flow = flowSchema.parse(formData.get("flow"));
   const identityId = String(formData.get("identityId") ?? "");
@@ -123,8 +118,6 @@ export async function verifyIdentityAction(_prev: FormState, formData: FormData)
 }
 
 export async function resendIdentityCodeAction(_prev: FormState, formData: FormData): Promise<FormState> {
-  const blocked = demoGuard(); // D-041: the shared demo account stays as it is
-  if (blocked) return blocked;
   const session = await requireSession();
   const result = await resendIdentityCode(
     actorFrom(session),
@@ -162,8 +155,6 @@ export async function revealIdentityAction(_prev: RevealState, formData: FormDat
 }
 
 export async function removeIdentityAction(_prev: FormState, formData: FormData): Promise<FormState> {
-  const blocked = demoGuard(); // D-041: the shared demo account stays as it is
-  if (blocked) return blocked;
   const session = await requireSession();
   const result = await removeIdentity(
     actorFrom(session),

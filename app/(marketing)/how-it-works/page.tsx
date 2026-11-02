@@ -3,7 +3,7 @@ import Link from "next/link";
 import { InfoPage, InfoSection, Steps } from "@/components/marketing/info-page";
 import { ButtonLink } from "@/components/ui/button";
 import { brand } from "@/config/brand";
-import { primaryCta } from "@/config/demo";
+import { AUTH_ROUTES } from "@/config/navigation";
 
 export const metadata: Metadata = {
   title: "How it works",
@@ -84,8 +84,9 @@ export default function HowItWorksPage() {
           <a href="https://haveibeenpwned.com" className="text-accent underline underline-offset-4">
             Have I Been Pwned
           </a>
-          &apos;s documented API, under its terms, and credits it wherever its data appears. The public demo
-          runs on fictional sources instead, and every result from them is labelled “Demo data”.
+          &apos;s documented API, under its terms, and credits it wherever its data appears. Until a
+          deployment is connected to it, the app runs on fictional sources instead, and every result from them
+          is labelled “Demo data”.
         </p>
         <p>
           We don&apos;t crawl the dark web, scrape leak sites, or download breach dumps. What each source
@@ -99,7 +100,7 @@ export default function HowItWorksPage() {
 
       <InfoSection id="start" title="Try it">
         <p>Checking starts with an account, because we only check addresses their owners have confirmed.</p>
-        <ButtonLink href={primaryCta().href}>{primaryCta().label}</ButtonLink>
+        <ButtonLink href={AUTH_ROUTES.signUp}>Check your exposure</ButtonLink>
       </InfoSection>
     </InfoPage>
   );

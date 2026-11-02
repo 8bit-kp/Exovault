@@ -559,7 +559,7 @@ The owner chose 2.
   - integration tests: windows and reset, 20 concurrent first hits counting 1–20, keyed hashes only, the real 6th-sign-in refusal, fail-closed;
   - a production server in cron mode with Redis unreachable: sign-in, scan and cron run all worked, with counters in MongoDB and no Redis connection attempts.
 
-## D-041 — Demo mode for showcasing (2026-10-13)
+## D-041 — Demo mode for showcasing (2026-10-13) — superseded by D-043
 
 **Context:** the owner wants to show the deployed project without public sign-up. Visitors should get demo credentials and see the app from the inside with fictional data, on the same link.
 
@@ -615,3 +615,14 @@ The owner chose 2.
 - Production email needs manual setup the code can't do: verifying `consltek.com` in Sender (SPF, DKIM, DMARC records shown by Sender) before `kishanpal.singh@consltek.com` can be the sender.
 - A send that times out after Sender accepted it can lead to a duplicate alert on the dispatcher's retry; a duplicate is preferred over a lost security alert.
 - The test key can't exercise the in-app flow (a test-domain address can't receive the ownership code), so in-app live scans still need the paid key.
+
+## D-043 — Demo mode removed (2026-11-02)
+
+**Context:** the deployment is going live for real users (Brevo email working, HIBP key being purchased). The owner asked for demo mode (D-041) to be removed from the code entirely.
+
+**Decision:** reverted D-041 and its self-healing addendum: `DEMO_MODE`, `DEMO_ACCOUNT_*`, `config/demo.ts`, the server-side `demoGuard()` checks, closed-page notices, the prefilled sign-in, the demo banner, the discarding email provider, the shared-account sign-in limit, the daily reset in the cron run and `server/services/demo/`. Sign-up, verification, reset, identity changes, deletion and session revocation work normally everywhere. Kept: the mock providers and their "Demo data" labels (`PROVIDER_MODE=mock`, still the default until an HIBP key is set), and the local `npm run seed` reviewer account (local development only; it is not run against production).
+
+**Consequences:**
+
+- Setting `DEMO_MODE` now does nothing (unknown variables are ignored).
+- **The shared demo account created in production by D-041 still exists, with a password that was public.** Without the guards it is an ordinary account, so it must be deleted from the production database (owner's action; not done by this change).

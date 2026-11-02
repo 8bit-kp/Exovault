@@ -89,7 +89,7 @@ export default function PrivacyPage() {
                 Have I Been Pwned
               </a>,
               "The monitored email address, over HTTPS",
-              "Each scan, in live mode only (the public demo uses fictional sources)",
+              "Each scan, once the app is connected to it (until then, fictional sources are used)",
             ],
             [
               "Pwned Passwords",

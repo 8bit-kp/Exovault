@@ -10,11 +10,6 @@ let provider: EmailProvider | undefined;
 export function getEmailProvider(): EmailProvider {
   if (!provider) {
     const env = getEnv();
-    // Demo mode (D-041): the shared account's address is fictional and sign-up is off, so nothing is sent.
-    if (env.DEMO_MODE === "on") {
-      provider = { name: "demo-discard", send: async () => undefined };
-      return provider;
-    }
     if (env.EMAIL_TRANSPORT === "sender") {
       // config/env guarantees the token and a `Name <address>` EMAIL_FROM in this mode.
       const from = parseMailbox(env.EMAIL_FROM)!;

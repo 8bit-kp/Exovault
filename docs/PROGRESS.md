@@ -1,6 +1,6 @@
 # Progress
 
-_Last updated: 2026-10-27 (Sender.net email and HIBP test key, D-042)_
+_Last updated: 2026-11-02 (demo mode removed, D-043)_
 
 ## Phase 0: Repository audit (done)
 
@@ -282,6 +282,12 @@ Built, so M3 meets the spec instead of listing gaps (D-037, D-038):
 - [x] `npm run hibp:smoke`, `npm run email:test -- --to <mailbox>`.
 - [x] `/privacy`, PRIVACY-DATA-MODEL, DEPLOYMENT, PROVIDERS, TESTING updated.
 - [ ] Owner: verify `consltek.com` in Sender, set the Vercel env vars, send one controlled test email, buy the HIBP key.
+
+## After M3: demo mode removed (done, D-043)
+
+- [x] D-041 showcase mode reverted; mock providers and the local seed kept.
+- [x] Production email runs on Brevo's SMTP relay (`EMAIL_TRANSPORT=smtp`); a test email was delivered to the owner's inbox (2026-11-02).
+- [ ] Owner: delete the old shared demo account from the production database; remove `DEMO_*` from Vercel.
 
 ## In progress
 

@@ -83,7 +83,6 @@ export function PasswordField({
   state,
   autoComplete,
   minLength,
-  defaultValue,
 }: {
   name: string;
   label: string;
@@ -91,8 +90,6 @@ export function PasswordField({
   state: FormState;
   autoComplete: "current-password" | "new-password";
   minLength?: number;
-  /** Only for the public demo account's password (D-041); real passwords are never prefilled. */
-  defaultValue?: string;
 }) {
   const [visible, setVisible] = useState(false);
   return (
@@ -106,7 +103,6 @@ export function PasswordField({
             autoComplete={autoComplete}
             minLength={minLength}
             maxLength={128}
-            defaultValue={defaultValue}
             required
             spellCheck={false}
             aria-describedby={describedBy}

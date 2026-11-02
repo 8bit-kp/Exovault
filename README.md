@@ -135,13 +135,11 @@ CI runs all of these plus a production dependency audit, a gitleaks secret scan,
 
 **Vercel (no second host):** set `SCHEDULER=cron`, `SCAN_QUEUE=inline` and `RATE_LIMIT_STORE=mongo` (no Redis needed), add Atlas and Sender.net for email (`EMAIL_TRANSPORT=sender`), and `vercel.json` schedules the daily cron. The step-by-step guide and every environment variable are in [Deployment → Vercel](docs/DEPLOYMENT.md#vercel-only-with-vercel-cron-d-039).
 
-**Showcase without sign-up:** `DEMO_MODE=on` with `DEMO_ACCOUNT_PASSWORD` gives visitors one shared, prefilled demo account with fictional data. Account changes and email are off, and the data resets daily ([Deployment → Demo mode](docs/DEPLOYMENT.md#demo-mode-a-showcase-with-one-shared-account-d-041)).
-
 **Containers:** The web image (`Dockerfile`) is Next's standalone server. The worker image (`Dockerfile.worker`) holds the worker bundle and production dependencies. You need a managed or authenticated MongoDB, a Redis with `noeviction`, Sender.net (or any SMTP relay) for email, and HTTPS. See [Deployment](docs/DEPLOYMENT.md) for the full checklist, backups and the Atlas migration path.
 
 ## Limitations
 
-- Coverage is whatever the configured providers know. The public demo uses fictional sources.
+- Coverage is whatever the configured providers know. Without an HIBP key (`PROVIDER_MODE=mock`), results come from fictional sources and are labelled "Demo data".
 - Email addresses only. Phone numbers and usernames are modelled (multi-identity from day one) but not offered. One active identity per user by default.
 - No two-factor sign-in yet (the architecture is ready for TOTP and passkeys).
 - Session tokens are stored by the auth library in plaintext. Mitigations: authenticated, least-privilege DB access, and 7-day expiry.
