@@ -6,7 +6,7 @@ import { Logo } from "@/components/ui/logo";
 export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-bg/90 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-6 px-4 sm:px-6">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:gap-6 sm:px-6">
         <Link href="/" className="rounded-sm">
           <Logo />
         </Link>
@@ -24,7 +24,7 @@ export function SiteHeader() {
             ))}
           </ul>
         </nav>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1 sm:gap-2">
           <ButtonLink href={AUTH_ROUTES.signIn} variant="ghost" size="sm">
             Sign in
           </ButtonLink>
