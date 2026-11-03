@@ -288,6 +288,7 @@ Built, so M3 meets the spec instead of listing gaps (D-037, D-038):
 - [x] D-041 showcase mode reverted; mock providers and the local seed kept.
 - [x] Production email runs on Brevo's SMTP relay (`EMAIL_TRANSPORT=smtp`); a test email was delivered to the owner's inbox (2026-11-02).
 - [x] Deployed to production (exovault.vercel.app, 2026-11-02): demo mode off, Brevo email variables set, `DEMO_*` removed from Vercel.
+- [x] Moved to https://consltek-breach-monitoring.vercel.app (2026-11-03): `APP_URL` updated, exovault.vercel.app now 308-redirects there. Header logo replaced with the Consltek logo and "Breach Monitoring" beneath it.
 - [x] Old shared demo account deleted from the production database with `npm run account:delete` (dry run, then `--confirm`; re-check found nothing).
 - [x] `/privacy` names the email processor actually configured (Brevo in production).
 
