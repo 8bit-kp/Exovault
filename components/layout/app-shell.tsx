@@ -16,13 +16,14 @@ interface AppShellProps {
 }
 
 /**
- * Signed-in layout: fixed sidebar on large screens, top bar + drawer below.
+ * Signed-in layout: on large screens a sidebar pinned to the viewport (it
+ * scrolls on its own only if taller than the screen); top bar + drawer below.
  * The shell holds no data; pages fetch and authorize their own (D-003).
  */
 export function AppShell({ children, account, accountCompact, banner, badges }: AppShellProps) {
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[15rem_1fr]">
-      <aside className="hidden border-r border-line bg-surface-1/50 lg:flex lg:flex-col">
+      <aside className="hidden border-r border-line bg-surface-1/50 lg:sticky lg:top-0 lg:flex lg:h-dvh lg:flex-col lg:self-start lg:overflow-y-auto">
         <div className="flex h-16 items-center border-b border-line px-5">
           <Link href="/app/dashboard" className="rounded-sm">
             <Logo />
